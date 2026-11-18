@@ -53,10 +53,11 @@ class NSEDataLoader:
 
     @staticmethod
     def _parse_nse_date_series(values: pd.Series) -> pd.Series:
-        """Parse ISO dates strictly as YYYY-MM-DD; use day-first only for legacy NSE formats."""
+        """Parse ISO dates as YYYY-MM-DD; use day-first only for legacy NSE formats."""
         text = values.astype("string").str.strip()
         iso_mask = text.str.fullmatch(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", na=False)
         parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
+
         if iso_mask.any():
             parsed.loc[iso_mask] = pd.to_datetime(
                 text.loc[iso_mask], format="%Y-%m-%d", errors="coerce"
@@ -66,6 +67,7 @@ class NSEDataLoader:
             parsed.loc[legacy_mask] = pd.to_datetime(
                 text.loc[legacy_mask], format="mixed", dayfirst=True, errors="coerce"
             )
+
         invalid = parsed.isna()
         if invalid.any():
             examples = text.loc[invalid].dropna().unique().tolist()[:5]
@@ -96,130 +98,9 @@ class NSEDataLoader:
         })
         df = df[df["instrument_type"].isin(["IDO", "IDF"])].copy()
 
+        # ISO UDiFF dates must not be interpreted with dayfirst=True.
         df["trade_date_dt"] = self._parse_nse_date_series(df["trade_date"])
         df["expiry_date_dt"] = self._parse_nse_date_series(df["expiry_date"])
-        df["trade_date"] = df["trade_date_dt"].dt.strftime("%Y-%m-%d")
-        df["expiry_date"] = df["expiry_date_dt"].dt.strftime("%Y-%m-%d")
-import glob
-import zipfile
-from typing import Dict
-import numpy as np
-import pandas as pd
-
-
-class NSEDataLoader:
-    BHAV_COL_MAP = {
-        "TradDt": "trade_date",
-        "TIMESTAMP": "trade_date",
-        "FinInstrmTp": "instrument_type",
-        "INSTRUMENT": "instrument_type",
-        "TckrSymb": "symbol",
-        "SYMBOL": "symbol",
-        "XpryDt": "expiry_date",
-        "EXPIRY_DT": "expiry_date",
-        "StrkPric": "strike",
-        "STRIKE_PR": "strike",
-        "OptnTp": "option_type",
-        "OPTION_TYP": "option_type",
-        "OpnPric": "open_price",
-        "OPEN": "open_price",
-        "HghPric": "high_price",
-        "HIGH": "high_price",
-        "LwPric": "low_price",
-        "LOW": "low_price",
-        "ClsPric": "close_price",
-        "CLOSE": "close_price",
-        "SttlmPric": "settle_price",
-        "SETTLE_PR": "settle_price",
-        "PrvsClsgPric": "prev_close_price",
-        "UndrlygPric": "underlying_price",
-        "OpnIntrst": "oi",
-        "OPEN_INT": "oi",
-        "ChngInOpnIntrst": "chg_in_oi",
-        "CHG_IN_OI": "chg_in_oi",
-        "TtlTradgVol": "volume",
-        "CONTRACTS": "volume",
-        "TtlTrfVal": "turnover",
-        "VAL_INLAKH": "turnover",
-        "NewBrdLotQty": "lot_size",
-    }
-
-    def __init__(self, symbol: str = "NIFTY", default_lot_size: int = 75):
-        self.symbol = symbol.upper()
-        self.default_lot_size = default_lot_size
-
-    @staticmethod
-    def _parse_nse_date_series(values: pd.Series) -> pd.Series:
-        """Parse ISO dates strictly as YYYY-MM-DD; use day-first only for legacy NSE formats."""
-        text = values.astype("string").str.strip()
-        iso_mask = text.str.fullmatch(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", na=False)
-        parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
-        if iso_mask.any():
-            parsed.loc[iso_mask] = pd.to_datetime(
-                text.loc[iso_mask], format="%Y-%m-%d", errors="coerce"
-            )
-        legacy_mask = ~iso_mask & text.notna() & text.ne("")
-        if legacy_mask.any():
-            parsed.loc[legacy_mask] = pd.to_datetime(
-                text.loc[legacy_mask], format="mixed", dayfirst=True, errors="coerce"
-            )
-        invalid = parsed.isna()
-        if invalid.any():
-            examples = text.loc[invalid].dropna().unique().tolist()[:5]
-            raise ValueError(f"Invalid NSE Bhavcopy date value(s): {examples}")
-        return parsed
-
-    def read_bhavcopy_file(self, filepath: str) -> pd.DataFrame:
-        if filepath.lower().endswith(".zip"):
-            with zipfile.ZipFile(filepath, "r") as zf:
-                csv_names = [n for n in zf.namelist() if n.lower().endswith(".csv")]
-                if not csv_names:
-                    raise ValueError(f"No CSV found inside {filepath}")
-                with zf.open(csv_names[0]) as f:
-                    raw = pd.read_csv(f)
-        else:
-            raw = pd.read_csv(filepath)
-
-        raw.columns = [c.strip() for c in raw.columns]
-        rename_dict = {c: self.BHAV_COL_MAP[c] for c in raw.columns if c in self.BHAV_COL_MAP}
-        df = raw.rename(columns=rename_dict).copy()
-
-        df["symbol"] = df["symbol"].astype(str).str.strip().str.upper()
-        df = df[df["symbol"] == self.symbol].copy()
-
-        df["instrument_type"] = df["instrument_type"].astype(str).str.strip().str.upper().replace({
-            "OPTIDX": "IDO",
-            "FUTIDX": "IDF",
-        })
-        df = df[df["instrument_type"].isin(["IDO", "IDF"])].copy()
-
-        # NSE UDiFF files commonly use ISO dates (YYYY-MM-DD). Do not pass
-        # those values through dayfirst=True: ambiguous values such as
-        # 2026-11-12 can otherwise be interpreted as 2026-12-11.
-        def parse_nse_date_column(values: pd.Series, column_name: str) -> pd.Series:
-            raw_dates = values.astype("string").str.strip()
-            parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
-            iso_mask = raw_dates.str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)
-
-            if iso_mask.any():
-                parsed.loc[iso_mask] = pd.to_datetime(
-                    raw_dates.loc[iso_mask], format="%Y-%m-%d", errors="coerce"
-                )
-            if (~iso_mask).any():
-                parsed.loc[~iso_mask] = pd.to_datetime(
-                    raw_dates.loc[~iso_mask], format="mixed", dayfirst=True, errors="coerce"
-                )
-
-            invalid = parsed.isna()
-            if invalid.any():
-                examples = raw_dates.loc[invalid].dropna().unique().tolist()[:5]
-                raise ValueError(
-                    f"Invalid {column_name} value(s) in NSE Bhavcopy: {examples}"
-                )
-            return parsed
-
-        df["trade_date_dt"] = parse_nse_date_column(df["trade_date"], "trade date")
-        df["expiry_date_dt"] = parse_nse_date_column(df["expiry_date"], "expiry date")
         df["trade_date"] = df["trade_date_dt"].dt.strftime("%Y-%m-%d")
         df["expiry_date"] = df["expiry_date_dt"].dt.strftime("%Y-%m-%d")
 
@@ -339,10 +220,7 @@ class NSEDataLoader:
                 date_col = [c for c in df.columns if "Date" in c][0]
                 ann_cols = [c for c in df.columns if "Annualised" in c or "Underlying" in c]
                 val_col = ann_cols[-1]
-                dt_value = self._parse_nse_date_series(pd.Series([sub.iloc[0][date_col]])).iloc[0]
-                if pd.isna(dt_value):
-                    continue
-                dt_str = dt_value.strftime("%Y-%m-%d")
+                dt_str = pd.to_datetime(sub.iloc[0][date_col], format="mixed", dayfirst=True).strftime("%Y-%m-%d")
                 vol_val = float(sub.iloc[0][val_col])
                 vol_map[dt_str] = vol_val * 100.0 if vol_val < 1.5 else vol_val
             except Exception:
