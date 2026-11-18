@@ -231,12 +231,19 @@ const SellerEngine = (() => {
       .filter(r => r.option_type === "PE" && r.strike <= spotClose * 1.005 && !r.capitulation_flag)
       .sort((a, b) => b.sdi_zscore - a.sdi_zscore);
 
-    const primaryCE = ceCands[0] || records[0];
+    if (ceCands.length === 0) {
+      throw new Error("No eligible CE resistance candidates were found around NIFTY spot for the selected expiry.");
+    }
+    if (peCands.length === 0) {
+      throw new Error("No eligible PE support candidates were found around NIFTY spot for the selected expiry.");
+    }
+
+    const primaryCE = ceCands[0];
     const majorCE = ceCands.find(r => r.strike > primaryCE.strike) || ceCands[1] || primaryCE;
     primaryCE.next_day_role = "Primary Resistance / CE Trap";
     if (majorCE.strike !== primaryCE.strike) majorCE.next_day_role = "Major Resistance";
 
-    const primaryPE = peCands[0] || records[records.length - 1];
+    const primaryPE = peCands[0];
     const majorPE = peCands.find(r => r.strike < primaryPE.strike) || peCands[1] || primaryPE;
     primaryPE.next_day_role = "Primary Support / PE Trap";
     if (majorPE.strike !== primaryPE.strike) majorPE.next_day_role = "Major Support";
