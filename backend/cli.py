@@ -95,10 +95,13 @@ def main():
         bt_path = os.path.join(args.output_dir, "walk_forward_validation.json")
         with open(bt_path, "w", encoding="utf-8") as f:
             json.dump(bt_res, f, indent=2)
-        print(f"[OK] Walk-Forward Validation ({bt_res['total_out_of_sample_sessions']} OOS days):")
-        print(f"     Resistance Hold Rate : {bt_res['resistance_hold_rate_pct']}%")
-        print(f"     Support Hold Rate    : {bt_res['support_hold_rate_pct']}%")
-        print(f"     No-Trade Precision   : {bt_res['sideways_no_trade_precision_pct']}%")
+        if "error" in bt_res:
+            print(f"[WARN] Walk-Forward Validation unavailable: {bt_res['error']}")
+        else:
+            print(f"[OK] Walk-Forward Validation ({bt_res['total_out_of_sample_sessions']} OOS days):")
+            print(f"     Resistance Hold Rate : {bt_res['resistance_hold_rate_pct']}%")
+            print(f"     Support Hold Rate    : {bt_res['support_hold_rate_pct']}%")
+            print(f"     No-Trade Precision   : {bt_res['sideways_no_trade_precision_pct']}%")
 
 
 if __name__ == "__main__":
