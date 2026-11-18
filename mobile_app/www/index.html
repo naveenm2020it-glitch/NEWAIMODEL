@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f7fb" />
+  <meta name="theme-color" content="#1C4A5A" />
   <title>NIFTY Seller Intelligence</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
@@ -33,7 +33,7 @@
       <div class="intro-note"><span class="note-icon">✓</span><span>Observed data kept separate from estimates and calculated risk levels</span></div>
     </section>
 
-    <section class="card import-card">
+    <section id="data-control" class="card import-card">
       <div class="section-heading">
         <div>
           <span class="eyebrow">DATA CONTROL</span>
@@ -59,7 +59,7 @@
       <div id="participantBar" class="part-bar" style="display:none;"></div>
     </section>
 
-    <section class="kpi-grid" aria-label="Market snapshot">
+    <section id="snapshot" class="kpi-grid" aria-label="Market snapshot">
       <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">◎</span><span>NIFTY Spot <em>OBSERVED</em></span></div><strong id="kpiSpot">—</strong><small>Latest available close</small></div>
       <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">⌁</span><span>14D Spot ATR</span></div><strong id="kpiAtr">—</strong><small>Points · calculated</small></div>
       <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">◌</span><span>ATM Implied Volatility</span></div><strong id="kpiIv">—</strong><small>BSM calculated</small></div>
@@ -116,7 +116,7 @@
     <footer class="app-footer"><span>NIFTY SELLER INTELLIGENCE</span><span>Research from NSE EOD records · Not a live market feed</span></footer>
   </main>
 
-  <script src="js/bsm_engine.js"></script>
+  <nav class="bottom-nav" aria-label="Quick navigation">\n    <a href="#snapshot"><span>⌂</span><span>Overview</span></a>\n    <a href="#data-control"><span>⇅</span><span>Data</span></a>\n    <a href="#level-map"><span>⌖</span><span>Levels</span></a>\n    <a href="#strike-detail"><span>▤</span><span>Strikes</span></a>\n  </nav>\n\n  <script src="js/bsm_engine.js"></script>
   <script src="js/nse_parser.js"></script>
   <script src="js/nse_auto_downloader.js"></script>
   <script src="js/seller_engine.js"></script>
