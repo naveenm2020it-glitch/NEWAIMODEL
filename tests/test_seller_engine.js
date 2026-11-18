@@ -38,6 +38,14 @@ for (const key of ["primary_resistance", "major_resistance", "primary_support", 
 }
 assert.equal(reversedReport.regime.box_high, report.regime.box_high);
 assert.equal(reversedReport.regime.box_low, report.regime.box_low);
+assert.ok(report.actionability && Number.isFinite(report.actionability.max_distance_points));
+assert.equal(report.primary_resistance.within_actionable_range, report.actionability.has_nearby_ce);
+assert.equal(report.primary_support.within_actionable_range, report.actionability.has_nearby_pe);
+assert.ok(report.primary_resistance.distance_from_spot_pts >= 0);
+assert.ok(report.primary_support.distance_from_spot_pts >= 0);
+if (!report.actionability.has_nearby_ce || !report.actionability.has_nearby_pe) {
+  assert.equal(report.regime.is_no_trade, true, "missing nearby seller evidence must force NO TRADE");
+}
 
 const putOnlyRows = rows.filter(row => row.option_type === "PE");
 assert.throws(
