@@ -601,9 +601,13 @@ class OptionSellerIntelligenceEngine:
 
         is_no_trade = len(reasons) >= 3 or not nearby_ce or not nearby_pe
         verdict = (
-            "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME"
-            if is_no_trade
-            else "ACTIONABLE — WATCH DUAL-PRICE TRIGGER LEVELS"
+            "WAIT / NO TRADE — NO NEARBY CONFIRMED WALL"
+            if is_no_trade and (not nearby_ce or not nearby_pe)
+            else (
+                "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME"
+                if is_no_trade
+                else "ACTIONABLE — WATCH DUAL-PRICE TRIGGER LEVELS"
+            )
         )
 
         regime = SidewaysRegimeAssessment(
@@ -653,6 +657,22 @@ class OptionSellerIntelligenceEngine:
                 ),
             ),
         ]
+
+        if not nearby_ce or not nearby_pe:
+            gap_contingencies.insert(
+                0,
+                OpeningGapContingency(
+                    scenario="NO TRADE — Nearby seller evidence missing",
+                    open_spot_condition=(
+                        "At least one side has no qualified seller wall within the configured spot-distance band."
+                    ),
+                    seller_impact="Distant strongest seller walls are context only, not immediate intraday levels.",
+                    execution_rule=(
+                        "Do not use these distant levels as option-buying entry signals. Wait for fresh intraday "
+                        "structure and 5m/15m confirmation."
+                    ),
+                ),
+            )
 
         default_probs = ml_probs or {
             "prob_range_hold_pct": round(68.0 if is_no_trade else 48.0, 1),
