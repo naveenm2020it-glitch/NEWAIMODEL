@@ -43,6 +43,11 @@ assert.equal(report.primary_resistance.within_actionable_range, report.actionabi
 assert.equal(report.primary_support.within_actionable_range, report.actionability.has_nearby_pe);
 assert.ok(report.primary_resistance.distance_from_spot_pts >= 0);
 assert.ok(report.primary_support.distance_from_spot_pts >= 0);
+assert.ok(report.strongest_resistance && report.strongest_support, "strongest seller walls must remain available separately");
+if (!report.actionability.has_nearby_ce || !report.actionability.has_nearby_pe) {
+  assert.match(report.regime.verdict, /NO NEARBY CONFIRMED WALL/);
+  assert.match(report.gap_playbook[0].title, /NO TRADE/);
+}
 if (!report.actionability.has_nearby_ce || !report.actionability.has_nearby_pe) {
   assert.equal(report.regime.is_no_trade, true, "missing nearby seller evidence must force NO TRADE");
 }
