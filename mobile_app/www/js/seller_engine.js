@@ -68,7 +68,7 @@ const SellerEngine = (() => {
     if (!Number.isFinite(spotClose) || spotClose <= 0) throw new Error("NIFTY spot close is missing or invalid in the latest EOD data.");
     const futuresClose = latestExp[0].futures_close;
     const basisSpread = futuresClose - spotClose;
-    const atr14 = computeSpotATR14(allRows);
+    const atr14 = computeSpotATR14(validRows);
 
     const minStrike = spotClose * 0.955;
     const maxStrike = spotClose * 1.045;
