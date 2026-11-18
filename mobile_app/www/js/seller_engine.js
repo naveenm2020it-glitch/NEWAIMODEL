@@ -37,8 +37,8 @@ const SellerEngine = (() => {
   function analyze(allRows, participantSummary = null) {
     if (!Array.isArray(allRows) || allRows.length === 0) throw new Error("No valid EOD records available.");
     const validRows = allRows.filter(r =>
-      r && /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.trade_date || "")) &&
-      /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.expiry_date || "")) &&
+      r && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(r.trade_date || "")) &&
+      /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(r.expiry_date || "")) &&
       Number.isFinite(Number(r.strike)) && Number(r.strike) > 0 &&
       (r.option_type === "CE" || r.option_type === "PE") &&
       Number.isFinite(Number(r.close_price)) && Number(r.close_price) >= 0 &&
