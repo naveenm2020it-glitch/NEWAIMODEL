@@ -455,7 +455,7 @@ class OptionSellerIntelligenceEngine:
         ce_candidates = [
             r for r in full_records
             if r.option_type == "CE"
-            and r.strike >= spot_close * 0.995
+            and r.strike >= spot_close
             and not r.estimated.eod_capitulation_flag
         ]
         ce_candidates.sort(
@@ -471,7 +471,7 @@ class OptionSellerIntelligenceEngine:
         pe_candidates = [
             r for r in full_records
             if r.option_type == "PE"
-            and r.strike <= spot_close * 1.005
+            and r.strike <= spot_close
             and not r.estimated.eod_capitulation_flag
         ]
         pe_candidates.sort(
