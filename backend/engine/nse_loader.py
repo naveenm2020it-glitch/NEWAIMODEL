@@ -55,7 +55,7 @@ class NSEDataLoader:
     def _parse_nse_date_series(values: pd.Series) -> pd.Series:
         """Parse ISO dates strictly as YYYY-MM-DD; use day-first only for legacy NSE formats."""
         text = values.astype("string").str.strip()
-        iso_mask = text.str.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", na=False)
+        iso_mask = text.str.fullmatch(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$", na=False)
         parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
         if iso_mask.any():
             parsed.loc[iso_mask] = pd.to_datetime(
