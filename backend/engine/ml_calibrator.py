@@ -30,7 +30,10 @@ class OutcomeProbabilityCalibrator:
         if len(X_df) < self.min_train_samples or len(np.unique(y)) < 2:
             self.is_fitted = False
             return
-        X = X_df[self.FEATURE_COLS].fillna(0.0).values
+        # Clear any previous fit before validating the new training window.
+        self.model = None
+        self.is_fitted = False
+        X = X_df.reindex(columns=self.FEATURE_COLS).replace([np.inf, -np.inf], np.nan).fillna(0.0).values
         clf = HistGradientBoostingClassifier(
             max_depth=3,
             learning_rate=0.05,
@@ -54,10 +57,16 @@ class OutcomeProbabilityCalibrator:
 
         X_in = np.array([[feature_row.get(c, 0.0) for c in self.FEATURE_COLS]])
         probs = self.model.predict_proba(X_in)[0]
-        classes = list(self.model.classes_)
-        prob_map = {int(cls): float(p) * 100.0 for cls, p in zip(classes, probs)}
+        prob_map = {int(cls): float(p) for cls, p in zip(self.model.classes_, probs)}
+        # A classifier trained on only two observed outcomes must not invent
+        # probability mass for the absent third outcome.
+        normalized = {label: max(0.0, prob_map.get(label, 0.0)) for label in (0, 1, 2)}
+        total = sum(normalized.values())
+        if total <= 0.0:
+            normalized = {0: 1.0, 1: 0.0, 2: 0.0}
+            total = 1.0
         return {
-            "prob_range_hold_pct": round(prob_map.get(0, 50.0), 1),
-            "prob_ce_short_covering_pct": round(prob_map.get(1, 25.0), 1),
-            "prob_pe_short_covering_pct": round(prob_map.get(2, 25.0), 1),
+            "prob_range_hold_pct": round(normalized[0] / total * 100.0, 1),
+            "prob_ce_short_covering_pct": round(normalized[1] / total * 100.0, 1),
+            "prob_pe_short_covering_pct": round(normalized[2] / total * 100.0, 1),
         }
