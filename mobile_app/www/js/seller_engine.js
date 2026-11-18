@@ -1,7 +1,12 @@
 const SellerEngine = (() => {
   function computeSpotATR14(allRows) {
     const byDate = {};
-    allRows.forEach(r => { if (!byDate[r.trade_date]) byDate[r.trade_date] = r.spot_close; });
+    allRows.forEach(r => {
+      const spot = Number(r && r.spot_close);
+      if (r && r.trade_date && Number.isFinite(spot) && spot > 0 && !byDate[r.trade_date]) {
+        byDate[r.trade_date] = spot;
+      }
+    });
     const dates = Object.keys(byDate).sort();
     const spots = dates.map(d => byDate[d]);
     if (spots.length < 2) return spots.length === 1 ? spots[0] * 0.0085 : 200.0;
@@ -66,7 +71,8 @@ const SellerEngine = (() => {
     if (latestExp.length === 0) throw new Error("The selected expiry has no option records.");
     const spotClose = Number(latestExp[0].spot_close);
     if (!Number.isFinite(spotClose) || spotClose <= 0) throw new Error("NIFTY spot close is missing or invalid in the latest EOD data.");
-    const futuresClose = latestExp[0].futures_close;
+    const rawFuturesClose = Number(latestExp[0].futures_close);
+    const futuresClose = Number.isFinite(rawFuturesClose) && rawFuturesClose > 0 ? rawFuturesClose : spotClose;
     const basisSpread = futuresClose - spotClose;
     const atr14 = computeSpotATR14(validRows);
 
