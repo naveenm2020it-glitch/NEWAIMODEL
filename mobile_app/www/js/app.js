@@ -177,14 +177,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function csvCell(value) {
     const text = value === null || value === undefined ? "" : String(value);
-    return /[",\\r\\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+    return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
   }
 
   function exportCsv(rows, filename) {
     if (!rows.length) { statusEl.textContent = "No records available for this selection."; return; }
     const columns = ["trade_date","expiry_date","strike","option_type","open_price","high_price","low_price","close_price","settle_price","prev_close_price","spot_close","futures_close","oi","chg_in_oi","volume","turnover","vwap","lot_size"];
-    const csv = [columns.join(","), ...rows.map(row => columns.map(key => csvCell(row[key])).join(","))].join("\\r\\n");
-    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const csv = [columns.join(","), ...rows.map(row => columns.map(key => csvCell(row[key])).join(","))].join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url; anchor.download = filename; anchor.style.display = "none";
@@ -245,6 +245,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       statusEl.textContent = added > 0
         ? `${res.statusMessage} (${added} NIFTY rows merged | ${datesCount} sessions stored)`
         : res.statusMessage;
+      refreshHistorySelectors();
       runAnalysis();
     } catch (error) {
       statusEl.textContent = "NSE EOD sync failed: " + (error && error.message ? error.message : "Unknown error") + ". You can retry or import the official CSV manually.";
@@ -323,6 +324,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const saved = saveStoredRows(existing);
     const datesCount = new Set(saved.map(r => r.trade_date)).size;
     statusEl.textContent = `Imported ${addedRecords} NIFTY records. Rolling DB: ${datesCount} trading sessions.`;
+    refreshHistorySelectors();
     runAnalysis();
     fileInput.value = "";
   });
@@ -339,6 +341,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       statusEl.textContent = "Local history cleared, but pending Android sync data could not be cleared: " + (error && error.message ? error.message : "Unknown error");
     }
+    refreshHistorySelectors();
     runAnalysis();
   });
 });
