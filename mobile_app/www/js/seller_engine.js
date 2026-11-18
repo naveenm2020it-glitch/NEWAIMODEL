@@ -14,30 +14,47 @@ const SellerEngine = (() => {
   }
 
   function selectActiveExpiry(latestRows) {
+    if (!Array.isArray(latestRows) || latestRows.length === 0) {
+      throw new Error("No latest-session NIFTY records are available.");
+    }
     const oiByExp = {};
     latestRows.forEach(r => { oiByExp[r.expiry_date] = (oiByExp[r.expiry_date] || 0) + r.oi; });
     const asOfMs = new Date(latestRows[0].trade_date).getTime();
     const valid = Object.entries(oiByExp)
       .map(([exp, totalOi]) => ({ exp, dte: Math.round((new Date(exp).getTime() - asOfMs) / 86400000), totalOi }))
       .filter(x => x.dte >= 1);
-    if (valid.length > 0) {
-      const maxOi = Math.max(...valid.map(x => x.totalOi));
-      const liquid = valid.filter(x => x.totalOi >= 0.35 * maxOi).sort((a, b) => a.dte - b.dte);
-      return liquid[0].exp;
+    if (valid.length === 0) {
+      throw new Error("No unexpired NIFTY option expiry was found in the latest EOD data.");
     }
-    return Object.entries(oiByExp).sort((a, b) => b[1] - a[1])[0][0];
+    const maxOi = Math.max(...valid.map(x => x.totalOi));
+    const liquid = valid.filter(x => x.totalOi >= 0.35 * maxOi).sort((a, b) => a.dte - b.dte);
+    if (liquid.length === 0) {
+      throw new Error("No sufficiently liquid future NIFTY expiry was found.");
+    }
+    return liquid[0].exp;
   }
 
   function analyze(allRows, participantSummary = null) {
-    const allDates = [...new Set(allRows.map(r => r.trade_date))].sort();
-    if (allDates.length === 0) throw new Error("No valid EOD records available.");
+    if (!Array.isArray(allRows) || allRows.length === 0) throw new Error("No valid EOD records available.");
+    const validRows = allRows.filter(r =>
+      r && /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.trade_date || "")) &&
+      /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.expiry_date || "")) &&
+      Number.isFinite(Number(r.strike)) && Number(r.strike) > 0 &&
+      (r.option_type === "CE" || r.option_type === "PE") &&
+      Number.isFinite(Number(r.close_price)) && Number(r.close_price) >= 0 &&
+      Number.isFinite(Number(r.oi)) && Number(r.oi) >= 0
+    );
+    if (validRows.length === 0) throw new Error("The imported data contains no usable NIFTY option records.");
+    const allDates = [...new Set(validRows.map(r => r.trade_date))].sort();
+    if (allDates.length === 0) throw new Error("No valid EOD dates available.");
 
     const latestDate = allDates[allDates.length - 1];
     const win22 = allDates.slice(-22);
     const lagMap = {};
     [...win22].reverse().forEach((d, idx) => { lagMap[d] = idx; });
 
-    const latestAll = allRows.filter(r => r.trade_date === latestDate);
+    const latestAll = validRows.filter(r => r.trade_date === latestDate);
+    if (latestAll.length === 0) throw new Error("No option records exist for the latest EOD date.");
     const targetExpiry = selectActiveExpiry(latestAll);
 
     const calDays = Math.max(1, Math.round((new Date(targetExpiry) - new Date(latestDate)) / 86400000));
@@ -46,7 +63,9 @@ const SellerEngine = (() => {
     const Tnext = Math.max(0.35, dte - 1.0) / 252.0;
 
     const latestExp = latestAll.filter(r => r.expiry_date === targetExpiry);
-    const spotClose = latestExp[0].spot_close;
+    if (latestExp.length === 0) throw new Error("The selected expiry has no option records.");
+    const spotClose = Number(latestExp[0].spot_close);
+    if (!Number.isFinite(spotClose) || spotClose <= 0) throw new Error("NIFTY spot close is missing or invalid in the latest EOD data.");
     const futuresClose = latestExp[0].futures_close;
     const basisSpread = futuresClose - spotClose;
     const atr14 = computeSpotATR14(allRows);
@@ -54,7 +73,8 @@ const SellerEngine = (() => {
     const minStrike = spotClose * 0.955;
     const maxStrike = spotClose * 1.045;
     const activeLatest = latestExp.filter(r => r.strike >= minStrike && r.strike <= maxStrike);
-    const hist22 = allRows.filter(r => win22.includes(r.trade_date) && r.strike >= minStrike && r.strike <= maxStrike);
+    if (activeLatest.length === 0) throw new Error("No strikes are available inside the analysis range for the selected expiry.");
+    const hist22 = validRows.filter(r => win22.includes(r.trade_date) && r.strike >= minStrike && r.strike <= maxStrike);
 
     const prelim = activeLatest.map(row => {
       const K = row.strike;
