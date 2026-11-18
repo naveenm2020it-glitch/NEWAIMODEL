@@ -119,7 +119,7 @@ function renderReport(report) {
   `).join("");
 }
 
-function runAnalysis() {
+function runAnalysis(selectedDate = null, selectedExpiry = null) {
   const rows = loadStoredRows();
   if (rows.length === 0) {
     document.getElementById("headerMeta").textContent = "Waiting for genuine NSE EOD data";
@@ -139,7 +139,9 @@ function runAnalysis() {
   try {
     const partRaw = localStorage.getItem(STORAGE_KEY_PART);
     const partSummary = partRaw ? JSON.parse(partRaw) : null;
-    const report = SellerEngine.analyze(rows, partSummary);
+    const analysisDate = selectedDate || [...new Set(rows.map(r => r.trade_date))].sort().slice(-1)[0];
+    const participantForDate = partSummary && partSummary.as_of === analysisDate ? partSummary : null;
+    const report = SellerEngine.analyze(rows, participantForDate, { date: analysisDate, expiry: selectedExpiry || null });
     renderReport(report);
   } catch (error) {
     document.getElementById("headerMeta").textContent = "Analysis unavailable — check imported NSE data";
@@ -165,6 +167,69 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnSyncNow = document.getElementById("btnSyncNow");
   const chkAutoSync = document.getElementById("chkAutoSync");
   const nextBadge = document.getElementById("nextScheduleBadge");
+  const historyDateSelect = document.getElementById("historyDateSelect");
+  const historyExpirySelect = document.getElementById("historyExpirySelect");
+  const historyDataMeta = document.getElementById("historyDataMeta");
+  const btnDownloadDateCsv = document.getElementById("btnDownloadDateCsv");
+  const btnDownloadExpiryCsv = document.getElementById("btnDownloadExpiryCsv");
+  let selectedHistoryDate = null;
+  let selectedHistoryExpiry = null;
+
+  function csvCell(value) {
+    const text = value === null || value === undefined ? "" : String(value);
+    return /[",\\r\\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function exportCsv(rows, filename) {
+    if (!rows.length) { statusEl.textContent = "No records available for this selection."; return; }
+    const columns = ["trade_date","expiry_date","strike","option_type","open_price","high_price","low_price","close_price","settle_price","prev_close_price","spot_close","futures_close","oi","chg_in_oi","volume","turnover","vwap","lot_size"];
+    const csv = [columns.join(","), ...rows.map(row => columns.map(key => csvCell(row[key])).join(","))].join("\\r\\n");
+    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = filename; anchor.style.display = "none";
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    statusEl.textContent = "Prepared " + filename + " (" + rows.length + " NIFTY option rows).";
+  }
+
+  function refreshHistorySelectors(preferredDate = null, preferredExpiry = null) {
+    const rows = loadStoredRows();
+    const dates = [...new Set(rows.map(r => r.trade_date).filter(Boolean))].sort().reverse();
+    historyDateSelect.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join("");
+    historyDateSelect.disabled = dates.length === 0;
+    if (!dates.length) {
+      historyExpirySelect.innerHTML = '<option value="">No expiry data</option>'; historyExpirySelect.disabled = true;
+      historyDataMeta.textContent = "Import or sync NSE data to choose a historical date.";
+      btnDownloadDateCsv.disabled = true; btnDownloadExpiryCsv.disabled = true; return;
+    }
+    selectedHistoryDate = dates.includes(preferredDate) ? preferredDate : dates[0];
+    historyDateSelect.value = selectedHistoryDate;
+    const expiries = SellerEngine.getAvailableExpiries(rows, selectedHistoryDate);
+    historyExpirySelect.innerHTML = expiries.map(e => `<option value="${e}">${e}</option>`).join("");
+    historyExpirySelect.disabled = expiries.length === 0;
+    if (!expiries.length) {
+      selectedHistoryExpiry = null; historyDataMeta.textContent = "No future expiry records are available for " + selectedHistoryDate + ".";
+      btnDownloadExpiryCsv.disabled = true;
+    } else {
+      let autoExpiry = null;
+      try { autoExpiry = SellerEngine.getDefaultExpiry(rows, selectedHistoryDate); } catch (_) {}
+      selectedHistoryExpiry = expiries.includes(preferredExpiry) ? preferredExpiry : (autoExpiry && expiries.includes(autoExpiry) ? autoExpiry : expiries[0]);
+      historyExpirySelect.value = selectedHistoryExpiry;
+      const dateRows = rows.filter(r => r.trade_date === selectedHistoryDate);
+      const expiryRows = dateRows.filter(r => r.expiry_date === selectedHistoryExpiry);
+      historyDataMeta.textContent = `${dateRows.length.toLocaleString()} NIFTY records · ${expiries.length} future expiry choices · ${expiryRows.length.toLocaleString()} records for selected expiry. Auto-selected expiry: ${autoExpiry || "unavailable"}.`;
+      btnDownloadExpiryCsv.disabled = expiryRows.length === 0;
+    }
+    btnDownloadDateCsv.disabled = !rows.some(r => r.trade_date === selectedHistoryDate);
+  }
+
+  function runSelectedHistoricalAnalysis() {
+    selectedHistoryDate = historyDateSelect.value || null;
+    selectedHistoryExpiry = historyExpirySelect.value || null;
+    runAnalysis(selectedHistoryDate, selectedHistoryExpiry);
+    refreshHistorySelectors(selectedHistoryDate, selectedHistoryExpiry);
+  }
 
   async function triggerAutoDownload(force = false) {
     btnSyncNow.disabled = true;
@@ -216,6 +281,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnSyncNow.addEventListener("click", () => triggerAutoDownload(true));
+
+  historyDateSelect.addEventListener("change", () => {
+    selectedHistoryDate = historyDateSelect.value;
+    refreshHistorySelectors(selectedHistoryDate, null);
+    runSelectedHistoricalAnalysis();
+  });
+  historyExpirySelect.addEventListener("change", runSelectedHistoricalAnalysis);
+  btnDownloadDateCsv.addEventListener("click", () => {
+    const rows = loadStoredRows().filter(r => r.trade_date === historyDateSelect.value);
+    exportCsv(rows, `NIFTY_EOD_${historyDateSelect.value}_ALL_EXPIRIES.csv`);
+  });
+  btnDownloadExpiryCsv.addEventListener("click", () => {
+    const date = historyDateSelect.value, expiry = historyExpirySelect.value;
+    const rows = loadStoredRows().filter(r => r.trade_date === date && r.expiry_date === expiry);
+    exportCsv(rows, `NIFTY_EOD_${date}_EXPIRY_${expiry}.csv`);
+  });
 
   fileInput.addEventListener("change", async (evt) => {
     const files = Array.from(evt.target.files || []);
