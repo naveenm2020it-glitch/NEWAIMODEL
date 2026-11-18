@@ -174,11 +174,11 @@ class WalkForwardBacktester:
             "total_out_of_sample_sessions": int(n_days),
             "resistance_hold_rate_pct": round(float(log_df["res_held"].mean() * 100.0), 1),
             "tested_resistance_hold_rate_pct": round(
-                float(res_tested_df["res_held"].mean() * 100.0) if not res_tested_df.empty else 100.0, 1
+                float(res_tested_df["res_held"].mean() * 100.0) if not res_tested_df.empty else None, 1
             ),
             "support_hold_rate_pct": round(float(log_df["sup_held"].mean() * 100.0), 1),
             "tested_support_hold_rate_pct": round(
-                float(sup_tested_df["sup_held"].mean() * 100.0) if not sup_tested_df.empty else 100.0, 1
+                float(sup_tested_df["sup_held"].mean() * 100.0) if not sup_tested_df.empty else None, 1
             ),
             "danger_zone_triggered_sessions": int(len(dual_trig_df)),
             "confirmed_short_covering_accuracy_pct": (
@@ -188,10 +188,9 @@ class WalkForwardBacktester:
             "confirmed_short_covering_accuracy_sample_count": int(len(dual_trig_df)),
             "false_breakouts_filtered_count": int(log_df["false_breakout_filtered"].sum()),
             "sideways_no_trade_flagged_sessions": int(len(no_trade_df)),
-            "sideways_no_trade_precision_pct": round(
-                float(no_trade_df["remained_sideways"].mean() * 100.0)
-                if not no_trade_df.empty else float(log_df["remained_sideways"].mean() * 100.0),
-                1,
+            "sideways_no_trade_precision_pct": (
+                round(float(no_trade_df["remained_sideways"].mean() * 100.0), 1)
+                if not no_trade_df.empty else None
             ),
             "overall_range_containment_pct": round(float(log_df["remained_sideways"].mean() * 100.0), 1),
             "daily_validation_log": daily_logs,
