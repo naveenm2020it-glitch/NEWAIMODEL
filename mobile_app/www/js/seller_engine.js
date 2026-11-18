@@ -323,6 +323,8 @@ const SellerEngine = (() => {
     majorPE.distance_from_spot_pts = +(spotClose - majorPE.strike).toFixed(1);
     majorCE.within_actionable_range = nearbyCE.length > 0 && majorCE.strike - spotClose <= maxActionableDistance && isQualifiedNearby(majorCE);
     majorPE.within_actionable_range = nearbyPE.length > 0 && spotClose - majorPE.strike <= maxActionableDistance && isQualifiedNearby(majorPE);
+    strongestCE.distance_from_spot_pts = +(strongestCE.strike - spotClose).toFixed(1);
+    strongestPE.distance_from_spot_pts = +(spotClose - strongestPE.strike).toFixed(1);
     strongestCE.is_strongest_seller_wall = true;
     strongestPE.is_strongest_seller_wall = true;
 
