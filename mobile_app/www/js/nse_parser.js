@@ -52,7 +52,7 @@ const NSEParser = (() => {
   function parseBhavcopyCSV(csvText, targetSymbol = "NIFTY", defaultLot = 75) {
     const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length < 2) return [];
-    const rawHeaders = parseCSVLine(lines[0]);
+    const rawHeaders = parseCSVLine(lines[0].replace(/^\uFEFF/, ""));
     const idxMap = {};
     rawHeaders.forEach((h, i) => { if (COL_MAP[h]) idxMap[COL_MAP[h]] = i; });
     if (idxMap.symbol === undefined || idxMap.strike === undefined) return [];
