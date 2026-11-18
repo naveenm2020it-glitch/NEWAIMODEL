@@ -50,7 +50,7 @@ const SellerEngine = (() => {
     const oiByExp = {};
     rows.forEach(r => { oiByExp[r.expiry_date] = (oiByExp[r.expiry_date] || 0) + Number(r.oi || 0); });
     const asOfMs = new Date(date + "T00:00:00").getTime();
-    return Object.keys(oiByExp).filter(exp => /^\\d{4}-\\d{2}-\\d{2}$/.test(exp) &&
+    return Object.keys(oiByExp).filter(exp => /^\d{4}-\d{2}-\d{2}$/.test(exp) &&
       Math.round((new Date(exp + "T00:00:00").getTime() - asOfMs) / 86400000) >= 1).sort();
   }
 
