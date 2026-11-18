@@ -43,6 +43,10 @@ assert.equal(report.primary_resistance.within_actionable_range, report.actionabi
 assert.equal(report.primary_support.within_actionable_range, report.actionability.has_nearby_pe);
 assert.ok(report.primary_resistance.distance_from_spot_pts >= 0);
 assert.ok(report.primary_support.distance_from_spot_pts >= 0);
+assert.ok(report.primary_resistance.strike >= report.spot_close, "CE resistance must be at/above spot");
+assert.ok(report.primary_support.strike <= report.spot_close, "PE support must be at/below spot");
+assert.ok(report.strongest_resistance.strike >= report.spot_close, "strongest CE wall must be above spot");
+assert.ok(report.strongest_support.strike <= report.spot_close, "strongest PE wall must be below spot");
 assert.ok(report.strongest_resistance && report.strongest_support, "strongest seller walls must remain available separately");
 if (!report.actionability.has_nearby_ce || !report.actionability.has_nearby_pe) {
   assert.match(report.regime.verdict, /NO NEARBY CONFIRMED WALL/);
