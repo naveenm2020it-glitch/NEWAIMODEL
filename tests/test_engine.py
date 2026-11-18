@@ -76,6 +76,38 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         probs = calibrator.predict_probs({"corridor_to_atr_ratio": "invalid", "dte": float("inf")})
         self.assertAlmostEqual(sum(probs.values()), 100.0, places=1)
 
+    def test_participant_oi_parses_thousands_separators(self):
+        participant = pd.DataFrame([
+            {
+                "trade_date": "2026-11-13",
+                "Client Type": "FII",
+                "Option Index Call Long": "1,200",
+                "Option Index Call Short": "500",
+                "Option Index Put Long": "300",
+                "Option Index Put Short": "700",
+            },
+            {
+                "trade_date": "2026-11-13",
+                "Client Type": "Pro",
+                "Option Index Call Long": "100",
+                "Option Index Call Short": "50",
+                "Option Index Put Long": "200",
+                "Option Index Put Short": "100",
+            },
+        ])
+        summary = OptionSellerIntelligenceEngine()._summarize_participants(
+            participant, "2026-11-13"
+        )
+        self.assertEqual(summary["inst_net_call_contracts"], 750)
+        self.assertEqual(summary["inst_net_put_contracts"], -300)
+
+    def test_engine_rejects_empty_or_incomplete_bhavcopy_with_clear_error(self):
+        engine = OptionSellerIntelligenceEngine()
+        with self.assertRaisesRegex(ValueError, "Empty NSE Bhavcopy"):
+            engine.analyze(pd.DataFrame())
+        with self.assertRaisesRegex(ValueError, "missing required normalized columns"):
+            engine.analyze(pd.DataFrame({"trade_date": ["2026-11-13"]}))
+
     def test_nse_iso_dates_are_not_reversed_by_dayfirst_parsing(self):
         values = pd.Series(["2026-11-13", "13-Nov-2026", "13/11/2026"])
         parsed = NSEDataLoader._parse_nse_date_series(values)
