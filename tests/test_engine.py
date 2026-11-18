@@ -172,6 +172,11 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         self.assertIn("actionability", report.to_dict())
         self.assertGreaterEqual(report.primary_resistance["distance_from_spot_pts"], 0)
         self.assertGreaterEqual(report.primary_support["distance_from_spot_pts"], 0)
+        self.assertTrue(report.strongest_resistance)
+        self.assertTrue(report.strongest_support)
+        if not report.actionability["has_nearby_ce"] or not report.actionability["has_nearby_pe"]:
+            self.assertIn("NO NEARBY CONFIRMED WALL", report.regime.verdict)
+            self.assertIn("NO TRADE", report.gap_contingencies[0].scenario)
         self.assertEqual(report.primary_resistance["within_actionable_range"], report.actionability["has_nearby_ce"])
         self.assertEqual(report.primary_support["within_actionable_range"], report.actionability["has_nearby_pe"])
         if not report.actionability["has_nearby_ce"] or not report.actionability["has_nearby_pe"]:
