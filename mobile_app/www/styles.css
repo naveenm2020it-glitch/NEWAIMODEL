@@ -170,3 +170,11 @@ tbody tr:hover { background: #fff9f1; }
 .history-download-row .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 .history-export-note { margin-top: 10px; color: #829194; font-size: 9px; line-height: 1.5; }
 @media (max-width: 560px) { .history-filter-grid { grid-template-columns: 1fr; } .history-download-row .btn { width: 100%; } }
+
+/* Calendar controls and safe-area spacing */
+.history-field input[type="date"] { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid #d9e3df; border-radius: 12px; background: #fff; color: #244a54; font: inherit; font-size: 14px; color-scheme: light; }
+.history-field input[type="date"]:focus-visible { outline: 3px solid rgba(255,176,87,.38); outline-offset: 2px; }
+.history-field input[type="date"]:disabled { opacity: .55; }
+.container { padding-bottom: max(145px, calc(125px + env(safe-area-inset-bottom))); }
+.bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.bottom-nav a span:first-child { display: block; min-height: 20px; line-height: 20px; }
