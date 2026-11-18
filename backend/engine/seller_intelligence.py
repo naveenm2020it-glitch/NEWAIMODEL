@@ -491,7 +491,7 @@ class OptionSellerIntelligenceEngine:
 
         # Keep strongest seller walls separate from nearby next-session levels.
         # "Nearby" is bounded by max(100 points, 0.75 x ATR14); a candidate
-        # must also show moderate/high concentration and fresh OI addition.
+        # must also show moderate/high concentration, fresh OI addition, and non-rising premium.
         max_actionable_distance = max(100.0, 0.75 * atr_14)
 
         def qualified_nearby(record, side):
@@ -500,6 +500,7 @@ class OptionSellerIntelligenceEngine:
                 0 <= distance <= max_actionable_distance
                 and record.estimated.writing_concentration != "Low"
                 and record.observed.chg_in_oi > 0
+                and record.observed.price_change <= 0
                 and not record.estimated.eod_capitulation_flag
             )
 
