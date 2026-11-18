@@ -1,0 +1,18 @@
+{
+  "name": "nifty-seller-intel",
+  "version": "1.1.0",
+  "description": "EOD NIFTY Option Seller Writing Intelligence & Next-Day S/R Engine with NSE Auto-Sync",
+  "scripts": {
+    "setup:android": "node scripts/configure-android.js",
+    "sync": "npx cap sync android && node scripts/configure-android.js",
+    "build:apk": "npx cap sync android && node scripts/configure-android.js && cd android && ./gradlew assembleDebug",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}

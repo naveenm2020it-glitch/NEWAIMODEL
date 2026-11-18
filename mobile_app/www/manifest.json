@@ -1,0 +1,9 @@
+{
+  "name": "NIFTY Option Seller Intelligence",
+  "short_name": "NIFTY Seller Intel",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b111a",
+  "theme_color": "#0f1724",
+  "description": "100% Offline EOD Option Seller Writing Intelligence & Next-Day S/R Engine"
+}

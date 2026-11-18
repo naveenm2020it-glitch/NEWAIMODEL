@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>NIFTY Option Seller Intelligence</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>NIFTY Seller Intelligence</h1>
+      <p id="headerMeta">Initializing EOD engine...</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card import-card">
+      <div class="sync-header-row">
+        <label class="toggle-wrap">
+          <input id="chkAutoSync" type="checkbox" checked />
+          <span>Auto-Sync NSE EOD (Daily 6:15 PM IST + On Open)</span>
+        </label>
+        <span id="nextScheduleBadge" class="schedule-pill">Next: 6:15 PM IST</span>
+      </div>
+
+      <div class="btn-row">
+        <button id="btnSyncNow" class="btn btn-primary">Sync NSE EOD Now</button>
+        <label for="csvFileInput" class="btn btn-secondary">Import CSVs</label>
+        <input id="csvFileInput" type="file" accept=".csv,text/csv" multiple hidden />
+        <button id="btnLoadDemo" class="btn btn-secondary">Demo 22D</button>
+        <button id="btnClearDb" class="btn btn-danger">Reset</button>
+      </div>
+      <div id="importStatus" class="status-text">Checking NSE EOD sync status...</div>
+      <div id="participantBar" class="part-bar" style="display:none;"></div>
+    </section>
+
+    <section class="kpi-grid">
+      <div class="kpi-box"><span>NIFTY Spot (Obs)</span><strong id="kpiSpot">—</strong></div>
+      <div class="kpi-box"><span>14D Spot ATR</span><strong id="kpiAtr">—</strong></div>
+      <div class="kpi-box"><span>ATM IV (Calc)</span><strong id="kpiIv">—</strong></div>
+      <div class="kpi-box"><span>Seller Box</span><strong id="kpiCorridor">—</strong></div>
+    </section>
+
+    <section id="regimeBanner" class="card regime-card">
+      <div id="regimeVerdict" class="regime-title">—</div>
+      <div id="regimeSub" class="regime-sub">—</div>
+      <ul id="regimeReasons" class="reasons-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Next-Day Seller Defended Walls &amp; Danger Triggers</h2>
+      <div id="wallsGrid" class="walls-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>9:15 AM Opening Gap Contingency Matrix (No Pre-Market Feed)</h2>
+      <div id="gapGrid" class="gap-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Strike Intelligence (Observed vs. Estimated vs. Calculated)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Strike / Role</th>
+              <th>EOD (Obs)</th>
+              <th>Entry (Est)</th>
+              <th>Conc.</th>
+              <th>Danger (Calc)</th>
+              <th>Status / ΔOI</th>
+            </tr>
+          </thead>
+          <tbody id="strikeTbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/bsm_engine.js"></script>
+  <script src="js/nse_parser.js"></script>
+  <script src="js/nse_auto_downloader.js"></script>
+  <script src="js/seller_engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
