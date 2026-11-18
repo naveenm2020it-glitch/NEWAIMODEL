@@ -63,10 +63,10 @@
         </div>
         <div class="history-filter-grid">
           <label class="history-field">Trading date
-            <select id="historyDateSelect" aria-label="Select historical trading date" disabled><option value="">No dates available</option></select>
+            <input id="historyDateSelect" type="date" aria-label="Select historical trading date" disabled />
           </label>
           <label class="history-field">Expiry
-            <select id="historyExpirySelect" aria-label="Select option expiry" disabled><option value="">Select a date first</option></select>
+            <input id="historyExpirySelect" type="date" aria-label="Select option expiry" disabled />
           </label>
         </div>
         <div id="historyDataMeta" class="history-data-meta">Import or sync NSE data to choose a historical date.</div>
@@ -135,7 +135,14 @@
     <footer class="app-footer"><span>NIFTY SELLER INTELLIGENCE</span><span>Research from NSE EOD records · Not a live market feed</span></footer>
   </main>
 
-  <nav class="bottom-nav" aria-label="Quick navigation">\n    <a href="#snapshot"><span>⌂</span><span>Overview</span></a>\n    <a href="#data-control"><span>⇅</span><span>Data</span></a>\n    <a href="#level-map"><span>⌖</span><span>Levels</span></a>\n    <a href="#strike-detail"><span>▤</span><span>Strikes</span></a>\n  </nav>\n\n  <script src="js/bsm_engine.js"></script>
+  <nav class="bottom-nav" aria-label="Quick navigation">
+    <a href="#snapshot"><span aria-hidden="true">⌂</span><span>Overview</span></a>
+    <a href="#data-control"><span aria-hidden="true">⇅</span><span>Data</span></a>
+    <a href="#level-map"><span aria-hidden="true">⌖</span><span>Levels</span></a>
+    <a href="#strike-detail"><span aria-hidden="true">▤</span><span>Strikes</span></a>
+  </nav>
+
+  <script src="js/bsm_engine.js"></script>
   <script src="js/nse_parser.js"></script>
   <script src="js/nse_auto_downloader.js"></script>
   <script src="js/seller_engine.js"></script>
