@@ -30,6 +30,15 @@ assert.equal(
 );
 assert.ok(report.strike_table.length > 0);
 
+// The same EOD snapshot must produce identical levels regardless of CSV row order.
+const reversedReport = context.SellerEngine.analyze([...rows].reverse());
+for (const key of ["primary_resistance", "major_resistance", "primary_support", "major_support"]) {
+  assert.equal(reversedReport[key].strike, report[key].strike, key + " must be order-invariant");
+  assert.equal(reversedReport[key].option_type, report[key].option_type, key + " option side must be stable");
+}
+assert.equal(reversedReport.regime.box_high, report.regime.box_high);
+assert.equal(reversedReport.regime.box_low, report.regime.box_low);
+
 const putOnlyRows = rows.filter(row => row.option_type === "PE");
 assert.throws(
   () => context.SellerEngine.analyze(putOnlyRows),
