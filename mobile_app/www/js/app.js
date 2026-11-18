@@ -79,10 +79,10 @@ function renderReport(report) {
   }
 
   const walls = [
-    { label: "Major Resistance", data: report.major_resistance, cls: "tag-res" },
-    { label: "Primary Resistance (CE Trap)", data: report.primary_resistance, cls: "tag-res" },
-    { label: "Primary Support (PE Trap)", data: report.primary_support, cls: "tag-sup" },
-    { label: "Major Support", data: report.major_support, cls: "tag-sup" }
+    { label: "Next Structural Resistance", data: report.major_resistance, cls: "tag-res" },
+    { label: "Nearest Resistance (CE Watch)", data: report.primary_resistance, cls: "tag-res" },
+    { label: "Nearest Support (PE Watch)", data: report.primary_support, cls: "tag-sup" },
+    { label: "Next Structural Support", data: report.major_support, cls: "tag-sup" }
   ];
   document.getElementById("wallsGrid").innerHTML = walls.map(w => `
     <div class="wall-box">
@@ -90,6 +90,8 @@ function renderReport(report) {
         <span class="badge ${w.cls}">${w.label}</span>
         <strong>${w.data.strike} ${w.data.option_type}</strong>
       </div>
+      <div class="wall-row"><span>Distance from spot:</span> <b>${w.data.distance_from_spot_pts ?? "—"} pts</b></div>
+      <div class="wall-row"><span>Level status:</span> <b>${w.data.within_actionable_range ? "Nearby evidence found" : "Not confirmed nearby"}</b></div>
       <div class="wall-row"><span>EOD Close (Obs):</span> <b>₹${w.data.eod_premium}</b></div>
       <div class="wall-row"><span>Est. Entry (Est):</span> <b>₹${w.data.est_entry_low} – ₹${w.data.est_entry_high}</b></div>
       <div class="wall-row"><span>Danger Prem (Calc):</span> <b class="danger-txt">₹${w.data.danger_premium}</b></div>
@@ -97,6 +99,13 @@ function renderReport(report) {
       <div class="wall-rule">${w.data.confirmation_rule}</div>
     </div>
   `).join("");
+
+  const wallContext = document.getElementById("wallContext");
+  if (wallContext) {
+    const sr = report.strongest_resistance;
+    const ss = report.strongest_support;
+    wallContext.textContent = `Strongest seller walls (context only): ${sr.strike} CE (${sr.distance_from_spot_pts} pts above spot) and ${ss.strike} PE (${ss.distance_from_spot_pts} pts below spot). ${report.actionability?.status || "Check nearby level evidence."}`;
+  }
 
   document.getElementById("gapGrid").innerHTML = report.gap_playbook.map(g => `
     <div class="gap-box">
