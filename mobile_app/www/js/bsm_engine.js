@@ -57,15 +57,14 @@ const BSMEngine = (() => {
     let c = a, fc = fa, d = b - a, e = d;
     for (let iter = 0; iter < maxIter; iter++) {
       if (Math.abs(fc) < Math.abs(fb)) {
-        // Preserve the old a/fa values before rotating the Brent bracket.
-        // Sequential assignments here would overwrite c/fc with b/fb.
-        const oldA = a, oldFa = fa;
+        // Brent's bracket rotation is (a, b, c) = (old b, old c, old b).
+        // Keep this assignment order: c/fc intentionally become old b/fb.
         a = b;
         b = c;
-        c = oldA;
+        c = a;
         fa = fb;
         fb = fc;
-        fc = oldFa;
+        fc = fa;
       }
       const tol1 = 2.0 * 2.22e-16 * Math.abs(b) + 0.5 * tol;
       const xm = 0.5 * (c - b);
