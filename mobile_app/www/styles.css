@@ -178,3 +178,5 @@ tbody tr:hover { background: #fff9f1; }
 .container { padding-bottom: max(145px, calc(125px + env(safe-area-inset-bottom))); }
 .bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
 .bottom-nav a span:first-child { display: block; min-height: 20px; line-height: 20px; }
+
+.wall-context { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #d5e4e3; border-radius: 14px; background: #eaf2f1; color: #244d59; font-size: 13px; line-height: 1.5; }
