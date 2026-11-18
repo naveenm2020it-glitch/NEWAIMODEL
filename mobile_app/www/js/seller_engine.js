@@ -284,10 +284,10 @@ const SellerEngine = (() => {
 
     // Separate nearby next-session levels from the strongest seller walls.
     // A wall is considered nearby only within max(100 points, 0.75 x ATR14)
-    // and with at least moderate concentration plus fresh OI addition.
+    // and with at least moderate concentration, fresh OI addition, and non-rising premium.
     const maxActionableDistance = Math.max(100, 0.75 * atr14);
     const isQualifiedNearby = r =>
-      r.writing_concentration !== "Low" && r.chg_in_oi > 0 && !r.capitulation_flag;
+      r.writing_concentration !== "Low" && r.chg_in_oi > 0 && r.premium_chg <= 0 && !r.capitulation_flag;
     const byDistanceThenStrength = (a, b) =>
       Math.abs(a.strike - spotClose) - Math.abs(b.strike - spotClose) ||
       candidateRank(a, b);
