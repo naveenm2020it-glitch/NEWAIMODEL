@@ -209,27 +209,47 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function refreshHistorySelectors(preferredDate = null, preferredExpiry = null) {
     const rows = loadStoredRows();
-    const dates = [...new Set(rows.map(r => r.trade_date).filter(Boolean))].sort().reverse();
-    historyDateSelect.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join("");
+    const dates = [...new Set(rows.map(r => r.trade_date).filter(d => /^\\d{4}-\\d{2}-\\d{2}$/.test(d)))].sort();
     historyDateSelect.disabled = dates.length === 0;
     if (!dates.length) {
-      historyExpirySelect.innerHTML = '<option value="">No expiry data</option>'; historyExpirySelect.disabled = true;
+      historyDateSelect.value = "";
+      historyDateSelect.removeAttribute("min");
+      historyDateSelect.removeAttribute("max");
+      historyExpirySelect.value = "";
+      historyExpirySelect.disabled = true;
+      historyExpirySelect.removeAttribute("min");
+      historyExpirySelect.removeAttribute("max");
       historyDataMeta.textContent = "Import or sync NSE data to choose a historical date.";
-      btnDownloadDateCsv.disabled = true; btnDownloadExpiryCsv.disabled = true; return;
+      btnDownloadDateCsv.disabled = true;
+      btnDownloadExpiryCsv.disabled = true;
+      return;
     }
-    selectedHistoryDate = dates.includes(preferredDate) ? preferredDate : dates[0];
+
+    selectedHistoryDate = dates.includes(preferredDate) ? preferredDate :
+      (dates.includes(historyDateSelect.value) ? historyDateSelect.value : dates[dates.length - 1]);
+    historyDateSelect.min = dates[0];
+    historyDateSelect.max = dates[dates.length - 1];
     historyDateSelect.value = selectedHistoryDate;
+
     const expiries = SellerEngine.getAvailableExpiries(rows, selectedHistoryDate);
-    historyExpirySelect.innerHTML = expiries.map(e => `<option value="${e}">${e}</option>`).join("");
     historyExpirySelect.disabled = expiries.length === 0;
     if (!expiries.length) {
-      selectedHistoryExpiry = null; historyDataMeta.textContent = "No future expiry records are available for " + selectedHistoryDate + ".";
+      selectedHistoryExpiry = null;
+      historyExpirySelect.value = "";
+      historyExpirySelect.removeAttribute("min");
+      historyExpirySelect.removeAttribute("max");
+      historyDataMeta.textContent = "No future expiry records are available for " + selectedHistoryDate + ".";
       btnDownloadExpiryCsv.disabled = true;
     } else {
       let autoExpiry = null;
       try { autoExpiry = SellerEngine.getDefaultExpiry(rows, selectedHistoryDate); } catch (_) {}
-      selectedHistoryExpiry = expiries.includes(preferredExpiry) ? preferredExpiry : (autoExpiry && expiries.includes(autoExpiry) ? autoExpiry : expiries[0]);
+      selectedHistoryExpiry = expiries.includes(preferredExpiry) ? preferredExpiry :
+        (expiries.includes(historyExpirySelect.value) ? historyExpirySelect.value :
+        (autoExpiry && expiries.includes(autoExpiry) ? autoExpiry : expiries[0]));
+      historyExpirySelect.min = expiries[0];
+      historyExpirySelect.max = expiries[expiries.length - 1];
       historyExpirySelect.value = selectedHistoryExpiry;
+
       const dateRows = rows.filter(r => r.trade_date === selectedHistoryDate);
       const expiryRows = dateRows.filter(r => r.expiry_date === selectedHistoryExpiry);
       historyDataMeta.textContent = `${dateRows.length.toLocaleString()} NIFTY records · ${expiries.length} future expiry choices · ${expiryRows.length.toLocaleString()} records for selected expiry. Auto-selected expiry: ${autoExpiry || "unavailable"}.`;
@@ -299,11 +319,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnSyncNow.addEventListener("click", () => triggerAutoDownload(true));
 
   historyDateSelect.addEventListener("change", () => {
-    selectedHistoryDate = historyDateSelect.value;
+    const chosenDate = historyDateSelect.value;
+    const storedDates = new Set(loadStoredRows().map(r => r.trade_date));
+    if (!storedDates.has(chosenDate)) {
+      historyDataMeta.textContent = "No stored NSE records for " + chosenDate + ". Choose a date shown in your stored history.";
+      historyDateSelect.value = selectedHistoryDate || "";
+      return;
+    }
+    selectedHistoryDate = chosenDate;
+    selectedHistoryExpiry = null;
     refreshHistorySelectors(selectedHistoryDate, null);
     runSelectedHistoricalAnalysis();
   });
-  historyExpirySelect.addEventListener("change", runSelectedHistoricalAnalysis);
+  historyExpirySelect.addEventListener("change", () => {
+    const chosenExpiry = historyExpirySelect.value;
+    const available = SellerEngine.getAvailableExpiries(loadStoredRows(), selectedHistoryDate);
+    if (!available.includes(chosenExpiry)) {
+      historyDataMeta.textContent = "No stored option records for expiry " + chosenExpiry + " on " + selectedHistoryDate + ". Choose an available expiry.";
+      historyExpirySelect.value = selectedHistoryExpiry || "";
+      return;
+    }
+    selectedHistoryExpiry = chosenExpiry;
+    runSelectedHistoricalAnalysis();
+  });
   btnDownloadDateCsv.addEventListener("click", () => {
     const rows = loadStoredRows().filter(r => r.trade_date === historyDateSelect.value);
     exportCsv(rows, `NIFTY_EOD_${historyDateSelect.value}_ALL_EXPIRIES.csv`);
