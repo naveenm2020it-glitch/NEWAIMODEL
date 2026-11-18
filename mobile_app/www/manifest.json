@@ -3,7 +3,7 @@
   "short_name": "NIFTY Seller Intel",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0b111a",
-  "theme_color": "#0f1724",
+  "background_color": "#C4CED0",
+  "theme_color": "#1C4A5A",
   "description": "100% Offline EOD Option Seller Writing Intelligence & Next-Day S/R Engine"
 }
