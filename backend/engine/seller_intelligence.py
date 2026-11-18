@@ -62,7 +62,11 @@ class OptionSellerIntelligenceEngine:
             if dte >= 1:
                 valid_exps.append((exp_str, dte, total_oi))
         if not valid_exps:
-            raise ValueError("No unexpired NIFTY option expiry was found in the latest EOD data.")
+            available = [str(value) for value in exp_oi.index.tolist()]
+            raise ValueError(
+                f"No unexpired NIFTY option expiry is available as of {as_of_dt.date()}. "
+                f"Available expiry values: {available[:8]}"
+            )
         max_oi = max(x[2] for x in valid_exps)
         liquid = [x for x in valid_exps if x[2] >= 0.35 * max_oi]
         if not liquid:
