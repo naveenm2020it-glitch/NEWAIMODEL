@@ -22,7 +22,7 @@ const participantCsv = [
   "Client Type,Future Index Long,Future Index Short,Option Index Call Long,Option Index Call Short,Option Index Put Long,Option Index Put Short",
   'FII,0,0,"1,200","500","300","700"',
   "Pro,0,0,100,50,200,100"
-].join("\\n");
+].join("\n");
 const participant = context.NSEParser.parseParticipantCSV(
   participantCsv,
   "fao_participant_oi_13112026.csv"
