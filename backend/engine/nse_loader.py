@@ -51,6 +51,23 @@ class NSEDataLoader:
         self.symbol = symbol.upper()
         self.default_lot_size = default_lot_size
 
+    @staticmethod
+    def _parse_nse_date_series(values: pd.Series) -> pd.Series:
+        """Parse ISO dates strictly as YYYY-MM-DD; use day-first only for legacy NSE formats."""
+        text = values.astype("string").str.strip()
+        iso_mask = text.str.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", na=False)
+        parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
+        if iso_mask.any():
+            parsed.loc[iso_mask] = pd.to_datetime(
+                text.loc[iso_mask], format="%Y-%m-%d", errors="coerce"
+            )
+        legacy_mask = ~iso_mask & text.notna() & text.ne("")
+        if legacy_mask.any():
+            parsed.loc[legacy_mask] = pd.to_datetime(
+                text.loc[legacy_mask], format="mixed", dayfirst=True, errors="coerce"
+            )
+        return parsed
+
     def read_bhavcopy_file(self, filepath: str) -> pd.DataFrame:
         if filepath.lower().endswith(".zip"):
             with zipfile.ZipFile(filepath, "r") as zf:
@@ -221,7 +238,10 @@ class NSEDataLoader:
                 date_col = [c for c in df.columns if "Date" in c][0]
                 ann_cols = [c for c in df.columns if "Annualised" in c or "Underlying" in c]
                 val_col = ann_cols[-1]
-                dt_str = pd.to_datetime(sub.iloc[0][date_col], format="mixed", dayfirst=True).strftime("%Y-%m-%d")
+                dt_value = self._parse_nse_date_series(pd.Series([sub.iloc[0][date_col]])).iloc[0]
+                if pd.isna(dt_value):
+                    continue
+                dt_str = dt_value.strftime("%Y-%m-%d")
                 vol_val = float(sub.iloc[0][val_col])
                 vol_map[dt_str] = vol_val * 100.0 if vol_val < 1.5 else vol_val
             except Exception:
