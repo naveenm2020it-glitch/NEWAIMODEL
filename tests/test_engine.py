@@ -76,6 +76,13 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         probs = calibrator.predict_probs({"corridor_to_atr_ratio": "invalid", "dte": float("inf")})
         self.assertAlmostEqual(sum(probs.values()), 100.0, places=1)
 
+    def test_nse_iso_dates_are_not_reversed_by_dayfirst_parsing(self):
+        values = pd.Series(["2026-11-13", "13-Nov-2026", "13/11/2026"])
+        parsed = NSEDataLoader._parse_nse_date_series(values)
+        self.assertEqual(parsed.dt.strftime("%Y-%m-%d").tolist(), [
+            "2026-11-13", "2026-11-13", "2026-11-13"
+        ])
+
     def test_engine_rejects_dataset_without_future_expiry(self):
         expired = pd.DataFrame({
             "trade_date": ["2026-11-18"],
