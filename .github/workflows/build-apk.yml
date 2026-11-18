@@ -53,6 +53,7 @@ jobs:
           node --check mobile_app/www/js/nse_auto_downloader.js
           node --check mobile_app/www/js/seller_engine.js
           node tests/test_nse_parser.js
+          node tests/test_bsm_js.js
 
       - name: Run Python engine tests
         run: python -m unittest discover -s tests -v
