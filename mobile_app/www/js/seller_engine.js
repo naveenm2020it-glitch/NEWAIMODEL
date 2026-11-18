@@ -269,10 +269,10 @@ const SellerEngine = (() => {
       (a.strike - b.strike);
 
     const ceCands = records
-      .filter(r => r.option_type === "CE" && r.strike >= spotClose * 0.995 && !r.capitulation_flag)
+      .filter(r => r.option_type === "CE" && r.strike >= spotClose && !r.capitulation_flag)
       .sort(candidateRank);
     const peCands = records
-      .filter(r => r.option_type === "PE" && r.strike <= spotClose * 1.005 && !r.capitulation_flag)
+      .filter(r => r.option_type === "PE" && r.strike <= spotClose && !r.capitulation_flag)
       .sort(candidateRank);
 
     if (ceCands.length === 0) {
