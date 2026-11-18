@@ -72,12 +72,14 @@ public class NseSessionFetcher {
             List<LocalDate> candidateDates = getRecentTradingDates(Math.max(1, Math.min(lookbackDays, 10)));
             String latestPartCsv = "";
             String latestPartName = "";
+            int attemptedDates = 0;
 
             for (LocalDate dt : candidateDates) {
                 String isoDate = dt.format(DateTimeFormatter.ISO_LOCAL_DATE);
                 if (!force && alreadySynced.contains(isoDate)) {
                     continue;
                 }
+                attemptedDates++;
 
                 String yyyymmdd = dt.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
                 String ddmmyyyy = dt.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
@@ -116,8 +118,12 @@ public class NseSessionFetcher {
 
             if (!result.syncedDates.isEmpty()) {
                 result.statusMessage = "Synced " + result.syncedDates.size() + " NSE EOD session(s): " + String.join(", ", result.syncedDates);
-            } else {
+            } else if (attemptedDates == 0) {
                 result.statusMessage = "Already up to date with latest NSE EOD (" + result.lastSyncIst + ")";
+            } else {
+                result.statusMessage = "No NSE BhavCopy files were downloaded for " + attemptedDates
+                    + " attempted trading date(s). NSE may not have published the files yet, the dates may be exchange holidays, "
+                    + "or the request may have been blocked. Check the date range or import the official CSV manually.";
             }
 
             prefs.edit()
