@@ -19,8 +19,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: nifty-seller-intel-apk-${{ github.ref }}
-  cancel-in-progress: true
+  # Build the exact pushed commit independently. A stuck older Android build
+  # must not block or cancel verification of the latest source revision.
+  group: nifty-seller-intel-apk-${{ github.sha }}
+  cancel-in-progress: false
 
 jobs:
   build-apk:
