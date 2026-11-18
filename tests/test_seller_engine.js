@@ -29,4 +29,16 @@ assert.equal(
   report.regime.box_high - report.regime.box_low
 );
 assert.ok(report.strike_table.length > 0);
-console.log("Seller engine report regression test passed.");
+
+const putOnlyRows = rows.filter(row => row.option_type === "PE");
+assert.throws(
+  () => context.SellerEngine.analyze(putOnlyRows),
+  /No eligible CE resistance candidates/
+);
+const callOnlyRows = rows.filter(row => row.option_type === "CE");
+assert.throws(
+  () => context.SellerEngine.analyze(callOnlyRows),
+  /No eligible PE support candidates/
+);
+
+console.log("Seller engine report regression tests passed.");
