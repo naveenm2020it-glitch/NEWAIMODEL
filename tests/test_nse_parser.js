@@ -23,7 +23,7 @@ const incompleteCsv = [
   "TradDt,TckrSymb,StrkPric,ClsPric",
   "2026-11-12,NIFTY,25000,105"
 ].join("\n");
-assert.deepEqual(context.NSEParser.parseBhavcopyCSV(incompleteCsv), []);
+assert.equal(context.NSEParser.parseBhavcopyCSV(incompleteCsv).length, 0);
 
 const participantCsv = [
   "Client Type,Future Index Long,Future Index Short,Option Index Call Long,Option Index Call Short,Option Index Put Long,Option Index Put Short",
