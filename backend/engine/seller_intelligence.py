@@ -99,8 +99,13 @@ class OptionSellerIntelligenceEngine:
             s_cols = [c for c in rows.columns if short_kw in c]
             if not l_cols or not s_cols:
                 return 0
-            long_val = pd.to_numeric(rows[l_cols[0]], errors="coerce").fillna(0).sum()
-            short_val = pd.to_numeric(rows[s_cols[0]], errors="coerce").fillna(0).sum()
+            # Participant CSV exports may quote thousands separators
+            # (for example, "1,200"). Strip grouping commas before numeric
+            # conversion so valid positions are not silently counted as zero.
+            long_raw = rows[l_cols[0]].astype("string").str.replace(",", "", regex=False).str.strip()
+            short_raw = rows[s_cols[0]].astype("string").str.replace(",", "", regex=False).str.strip()
+            long_val = pd.to_numeric(long_raw, errors="coerce").fillna(0).sum()
+            short_val = pd.to_numeric(short_raw, errors="coerce").fillna(0).sum()
             return int(long_val - short_val)
 
         inst_net_call = get_net(["FII", "Pro"], "Option Index Call Long", "Option Index Call Short")
@@ -132,9 +137,25 @@ class OptionSellerIntelligenceEngine:
         fovolt_map: Optional[Dict[str, float]] = None,
         ml_probs: Optional[Dict[str, float]] = None,
     ) -> NextDayIntelligenceReport:
-        all_dates = sorted(bhav_df["trade_date"].unique())
+        required_columns = {
+            "trade_date", "expiry_date", "strike", "option_type", "spot_close",
+            "futures_close", "open_price", "high_price", "low_price",
+            "close_price", "settle_price", "prev_close_price", "oi", "chg_in_oi",
+            "volume", "turnover", "vwap", "lot_size", "oi_contracts",
+            "chg_oi_contracts", "vol_contracts",
+        }
+        if bhav_df is None or bhav_df.empty:
+            raise ValueError("Empty NSE Bhavcopy DataFrame provided.")
+        missing_columns = sorted(required_columns.difference(bhav_df.columns))
+        if missing_columns:
+            raise ValueError(
+                "NSE Bhavcopy is missing required normalized columns: "
+                + ", ".join(missing_columns)
+            )
+
+        all_dates = sorted(bhav_df["trade_date"].dropna().astype(str).unique())
         if not all_dates:
-            raise ValueError("Empty Bhavcopy DataFrame provided.")
+            raise ValueError("NSE Bhavcopy contains no valid trade dates.")
 
         latest_date = all_dates[-1]
         window_22_dates = all_dates[-self.structural_window :]
@@ -166,6 +187,11 @@ class OptionSellerIntelligenceEngine:
         active_latest = latest_exp[
             (latest_exp["strike"] >= min_strike) & (latest_exp["strike"] <= max_strike)
         ].copy()
+        if active_latest.empty:
+            raise ValueError(
+                f"No option strikes found within +/-{self.strike_range_pct * 100:.1f}% "
+                f"of NIFTY spot ({spot_close:.2f}) for expiry {target_expiry}."
+            )
 
         hist_22 = bhav_df[
             (bhav_df["trade_date"].isin(window_22_dates))
@@ -430,11 +456,16 @@ class OptionSellerIntelligenceEngine:
         ]
         pe_candidates.sort(key=lambda r: r.estimated.composite_sdi_zscore, reverse=True)
 
-        primary_ce = ce_candidates[0] if ce_candidates else full_records[0]
+        if not ce_candidates:
+            raise ValueError("No eligible CE resistance strikes found near/above NIFTY spot in the selected expiry.")
+        if not pe_candidates:
+            raise ValueError("No eligible PE support strikes found near/below NIFTY spot in the selected expiry.")
+
+        primary_ce = ce_candidates[0]
         major_ce_list = [r for r in ce_candidates if r.strike > primary_ce.strike]
         major_ce = major_ce_list[0] if major_ce_list else (ce_candidates[1] if len(ce_candidates) > 1 else primary_ce)
 
-        primary_pe = pe_candidates[0] if pe_candidates else full_records[-1]
+        primary_pe = pe_candidates[0]
         major_pe_list = [r for r in pe_candidates if r.strike < primary_pe.strike]
         major_pe = major_pe_list[0] if major_pe_list else (pe_candidates[1] if len(pe_candidates) > 1 else primary_pe)
 
