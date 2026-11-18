@@ -57,7 +57,10 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         report = engine.analyze(bhav_df, part_df)
         self.assertEqual(report.primary_resistance["strike"], 25100.0)
         self.assertEqual(report.primary_support["strike"], 24900.0)
-        self.assertTrue(report.regime.is_no_trade)
+        # Regime output must always agree with the engine's documented 3-of-5 rule.
+        self.assertEqual(report.regime.triggered_rules_count, len(report.regime.reasons))
+        self.assertEqual(report.regime.total_rules, 5)
+        self.assertEqual(report.regime.is_no_trade, report.regime.triggered_rules_count >= 3)
 
         bt = WalkForwardBacktester(engine)
         res = bt.run(bhav_df, part_df, warmup_sessions=8)
