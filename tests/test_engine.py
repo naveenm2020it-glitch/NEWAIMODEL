@@ -168,7 +168,14 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
 
         # Regime output must always agree with the engine's documented 3-of-5 rule.
         self.assertEqual(report.regime.triggered_rules_count, len(report.regime.reasons))
-        self.assertEqual(report.regime.total_rules, 5)
+        self.assertEqual(report.regime.total_rules, 6)
+        self.assertIn("actionability", report.to_dict())
+        self.assertGreaterEqual(report.primary_resistance["distance_from_spot_pts"], 0)
+        self.assertGreaterEqual(report.primary_support["distance_from_spot_pts"], 0)
+        self.assertEqual(report.primary_resistance["within_actionable_range"], report.actionability["has_nearby_ce"])
+        self.assertEqual(report.primary_support["within_actionable_range"], report.actionability["has_nearby_pe"])
+        if not report.actionability["has_nearby_ce"] or not report.actionability["has_nearby_pe"]:
+            self.assertTrue(report.regime.is_no_trade, "missing nearby seller evidence must force NO TRADE")
         self.assertEqual(report.regime.is_no_trade, report.regime.triggered_rules_count >= 3)
 
         bt = WalkForwardBacktester(engine)
