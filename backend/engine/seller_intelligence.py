@@ -153,6 +153,13 @@ class OptionSellerIntelligenceEngine:
                 + ", ".join(missing_columns)
             )
 
+        # Canonical row order makes calculations invariant to NSE CSV/import ordering.
+        bhav_df = bhav_df.sort_values(
+            ["trade_date", "expiry_date", "strike", "option_type"],
+            ascending=[True, True, True, True],
+            kind="mergesort",
+        ).reset_index(drop=True)
+
         all_dates = sorted(bhav_df["trade_date"].dropna().astype(str).unique())
         if not all_dates:
             raise ValueError("NSE Bhavcopy contains no valid trade dates.")
@@ -253,7 +260,12 @@ class OptionSellerIntelligenceEngine:
                 (hist_22["strike"] == K) & (hist_22["option_type"] == opt_type)
             ].copy()
             sub_hist["is_target_exp"] = (sub_hist["expiry_date"] == target_expiry).astype(int)
-            sub_hist.sort_values(["lag_j", "is_target_exp", "oi"], ascending=[True, False, False], inplace=True)
+            sub_hist.sort_values(
+                ["lag_j", "is_target_exp", "oi", "chg_oi_contracts", "expiry_date", "close_price", "vwap"],
+                ascending=[True, False, False, False, True, True, True],
+                kind="mergesort",
+                inplace=True,
+            )
             sub_hist = sub_hist.drop_duplicates(subset=["lag_j"], keep="first")
 
             i5 = 0.0
@@ -446,7 +458,15 @@ class OptionSellerIntelligenceEngine:
             and r.strike >= spot_close * 0.995
             and not r.estimated.eod_capitulation_flag
         ]
-        ce_candidates.sort(key=lambda r: r.estimated.composite_sdi_zscore, reverse=True)
+        ce_candidates.sort(
+            key=lambda r: (
+                -r.estimated.composite_sdi_zscore,
+                -r.observed.chg_in_oi,
+                -r.observed.oi,
+                abs(r.strike - spot_close),
+                r.strike,
+            )
+        )
 
         pe_candidates = [
             r for r in full_records
@@ -454,7 +474,15 @@ class OptionSellerIntelligenceEngine:
             and r.strike <= spot_close * 1.005
             and not r.estimated.eod_capitulation_flag
         ]
-        pe_candidates.sort(key=lambda r: r.estimated.composite_sdi_zscore, reverse=True)
+        pe_candidates.sort(
+            key=lambda r: (
+                -r.estimated.composite_sdi_zscore,
+                -r.observed.chg_in_oi,
+                -r.observed.oi,
+                abs(r.strike - spot_close),
+                r.strike,
+            )
+        )
 
         if not ce_candidates:
             raise ValueError("No eligible CE resistance strikes found near/above NIFTY spot in the selected expiry.")
