@@ -69,14 +69,21 @@ public class NseSessionFetcher {
             warmUpSessionHttp();
             String webCookies = warmUpSessionWebView(context);
 
-            List<LocalDate> candidateDates = getRecentTradingDates(Math.max(1, Math.min(lookbackDays, 10)));
+            int targetSessions = Math.max(1, Math.min(lookbackDays, 10));
+            // Scan extra weekdays because NSE holidays are not captured by a
+            // weekend-only calendar. Stop after covering the requested number
+            // of already-synced or newly downloaded exchange sessions.
+            List<LocalDate> candidateDates = getRecentTradingDates(Math.min(20, targetSessions * 2));
             String latestPartCsv = "";
             String latestPartName = "";
             int attemptedDates = 0;
+            int coveredSessions = 0;
 
             for (LocalDate dt : candidateDates) {
+                if (coveredSessions >= targetSessions) break;
                 String isoDate = dt.format(DateTimeFormatter.ISO_LOCAL_DATE);
                 if (!force && alreadySynced.contains(isoDate)) {
+                    coveredSessions++;
                     continue;
                 }
                 attemptedDates++;
@@ -94,6 +101,7 @@ public class NseSessionFetcher {
                         result.bhavCsvPayloads.add(filteredNiftyCsv);
                         result.syncedDates.add(isoDate);
                         alreadySynced.add(isoDate);
+                        coveredSessions++;
                     }
                 }
 
