@@ -282,20 +282,64 @@ const SellerEngine = (() => {
       throw new Error("No eligible PE support candidates were found around NIFTY spot for the selected expiry.");
     }
 
-    const primaryCE = ceCands[0];
-    const majorCE = ceCands.find(r => r.strike > primaryCE.strike) || ceCands[1] || primaryCE;
-    primaryCE.next_day_role = "Primary Resistance / CE Trap";
-    if (majorCE.strike !== primaryCE.strike) majorCE.next_day_role = "Major Resistance";
+    // Separate nearby next-session levels from the strongest seller walls.
+    // A wall is considered nearby only within max(100 points, 0.75 x ATR14)
+    // and with at least moderate concentration plus fresh OI addition.
+    const maxActionableDistance = Math.max(100, 0.75 * atr14);
+    const isQualifiedNearby = r =>
+      r.writing_concentration !== "Low" && r.chg_in_oi > 0 && !r.capitulation_flag;
+    const byDistanceThenStrength = (a, b) =>
+      Math.abs(a.strike - spotClose) - Math.abs(b.strike - spotClose) ||
+      candidateRank(a, b);
 
-    const primaryPE = peCands[0];
-    const majorPE = peCands.find(r => r.strike < primaryPE.strike) || peCands[1] || primaryPE;
-    primaryPE.next_day_role = "Primary Support / PE Trap";
-    if (majorPE.strike !== primaryPE.strike) majorPE.next_day_role = "Major Support";
+    const nearbyCE = ceCands.filter(r =>
+      r.strike >= spotClose &&
+      r.strike - spotClose <= maxActionableDistance &&
+      isQualifiedNearby(r)
+    ).sort(byDistanceThenStrength);
+    const nearbyPE = peCands.filter(r =>
+      r.strike <= spotClose &&
+      spotClose - r.strike <= maxActionableDistance &&
+      isQualifiedNearby(r)
+    ).sort(byDistanceThenStrength);
+
+    const strongestCE = ceCands[0];
+    const strongestPE = peCands[0];
+    const primaryCE = nearbyCE[0] || [...ceCands].sort(byDistanceThenStrength)[0];
+    const primaryPE = nearbyPE[0] || [...peCands].sort(byDistanceThenStrength)[0];
+
+    const majorCE = ceCands.filter(r => r.strike > primaryCE.strike)
+      .sort((a, b) => a.strike - b.strike || candidateRank(a, b))[0] || primaryCE;
+    const majorPE = peCands.filter(r => r.strike < primaryPE.strike)
+      .sort((a, b) => b.strike - a.strike || candidateRank(a, b))[0] || primaryPE;
+
+    primaryCE.distance_from_spot_pts = +(primaryCE.strike - spotClose).toFixed(1);
+    primaryPE.distance_from_spot_pts = +(spotClose - primaryPE.strike).toFixed(1);
+    primaryCE.within_actionable_range = nearbyCE.length > 0;
+    primaryPE.within_actionable_range = nearbyPE.length > 0;
+    primaryCE.selection_basis = nearbyCE.length ? "NEAREST QUALIFIED SELLER WALL" : "NO NEARBY CONFIRMED WALL — NEAREST CANDIDATE ONLY";
+    primaryPE.selection_basis = nearbyPE.length ? "NEAREST QUALIFIED SELLER WALL" : "NO NEARBY CONFIRMED WALL — NEAREST CANDIDATE ONLY";
+    majorCE.distance_from_spot_pts = +(majorCE.strike - spotClose).toFixed(1);
+    majorPE.distance_from_spot_pts = +(spotClose - majorPE.strike).toFixed(1);
+    majorCE.within_actionable_range = nearbyCE.length > 0 && majorCE.strike - spotClose <= maxActionableDistance && isQualifiedNearby(majorCE);
+    majorPE.within_actionable_range = nearbyPE.length > 0 && spotClose - majorPE.strike <= maxActionableDistance && isQualifiedNearby(majorPE);
+    strongestCE.is_strongest_seller_wall = true;
+    strongestPE.is_strongest_seller_wall = true;
+
+    primaryCE.next_day_role = "Nearest Resistance / CE Watch";
+    if (majorCE.strike !== primaryCE.strike) majorCE.next_day_role = "Next Structural Resistance";
+    primaryPE.next_day_role = "Nearest Support / PE Watch";
+    if (majorPE.strike !== primaryPE.strike) majorPE.next_day_role = "Next Structural Support";
 
     const corridorPts = Math.max(0, primaryCE.strike - primaryPE.strike);
     const corridorRatio = corridorPts / Math.max(atr14, 1.0);
     const reasons = [];
 
+    if (!nearbyCE.length || !nearbyPE.length) {
+      reasons.push("NO TRADE GATE: No qualified nearby seller wall on " +
+        (!nearbyCE.length && !nearbyPE.length ? "either side" : (!nearbyCE.length ? "the CE side" : "the PE side")) +
+        " within " + maxActionableDistance.toFixed(0) + " points of spot. Distant strongest walls are context only.");
+    }
     if (corridorRatio < 1.25) {
       reasons.push(`Tight Seller Corridor: ${primaryPE.strike} PE to ${primaryCE.strike} CE is ${corridorPts} pts (${corridorRatio.toFixed(2)}x ATR14 < 1.25x).`);
     }
@@ -317,7 +361,7 @@ const SellerEngine = (() => {
       reasons.push(`Insufficient Runway: Spot needs >${minRunway.toFixed(0)} pts just to reach seller danger triggers.`);
     }
 
-    const isNoTrade = reasons.length >= 3;
+    const isNoTrade = reasons.length >= 3 || nearbyCE.length === 0 || nearbyPE.length === 0;
     const flatLow = (spotClose - 0.25 * atr14).toFixed(1);
     const flatHigh = (spotClose + 0.25 * atr14).toFixed(1);
 
@@ -354,6 +398,13 @@ const SellerEngine = (() => {
       },
       primary_resistance: primaryCE, major_resistance: majorCE,
       primary_support: primaryPE, major_support: majorPE,
+      strongest_resistance: strongestCE, strongest_support: strongestPE,
+      actionability: {
+        max_distance_points: +maxActionableDistance.toFixed(1),
+        nearby_ce_count: nearbyCE.length, nearby_pe_count: nearbyPE.length,
+        has_nearby_ce: nearbyCE.length > 0, has_nearby_pe: nearbyPE.length > 0,
+        status: nearbyCE.length && nearbyPE.length ? "NEARBY WALLS FOUND — WAIT FOR INTRADAY CONFIRMATION" : "NO TRADE — NO QUALIFIED NEARBY WALL"
+      },
       vacated_strikes: vacated, gap_playbook: gapPlaybook, strike_table: records
     };
   }
