@@ -27,13 +27,24 @@ class OutcomeProbabilityCalibrator:
         self.is_fitted = False
 
     def fit(self, X_df: pd.DataFrame, y: np.ndarray) -> None:
-        if len(X_df) < self.min_train_samples or len(np.unique(y)) < 2:
-            self.is_fitted = False
-            return
-        # Clear any previous fit before validating the new training window.
+        # Every fit call starts a new training state. Never retain a model from
+        # an earlier window when the current window is not trainable.
         self.model = None
         self.is_fitted = False
-        X = X_df.reindex(columns=self.FEATURE_COLS).replace([np.inf, -np.inf], np.nan).fillna(0.0).values
+
+        y = np.asarray(y)
+        if len(X_df) != len(y):
+            raise ValueError("Feature rows and outcome labels must have the same length.")
+        if len(X_df) < self.min_train_samples or len(np.unique(y)) < 2:
+            return
+
+        X = (
+            X_df.reindex(columns=self.FEATURE_COLS)
+            .apply(pd.to_numeric, errors="coerce")
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0.0)
+            .to_numpy(dtype=float)
+        )
         clf = HistGradientBoostingClassifier(
             max_depth=3,
             learning_rate=0.05,
@@ -55,7 +66,13 @@ class OutcomeProbabilityCalibrator:
                 "prob_pe_short_covering_pct": round(rem * 0.48, 1),
             }
 
-        X_in = np.array([[feature_row.get(c, 0.0) for c in self.FEATURE_COLS]])
+        X_in = pd.DataFrame([feature_row]).reindex(columns=self.FEATURE_COLS)
+        X_in = (
+            X_in.apply(pd.to_numeric, errors="coerce")
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0.0)
+            .to_numpy(dtype=float)
+        )
         probs = self.model.predict_proba(X_in)[0]
         prob_map = {int(cls): float(p) for cls, p in zip(self.model.classes_, probs)}
         # A classifier trained on only two observed outcomes must not invent
