@@ -298,7 +298,7 @@ const SellerEngine = (() => {
       regime: {
         is_no_trade: isNoTrade,
         verdict: isNoTrade ? "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME" : "ACTIONABLE — WATCH DUAL-PRICE TRIGGERS",
-        triggered_count: reasons.length, corridor_pts, corridor_ratio: +corridorRatio.toFixed(2),
+        triggered_count: reasons.length, corridor_pts: corridorPts, corridor_ratio: +corridorRatio.toFixed(2),
         box_low: primaryPE.strike, box_high: primaryCE.strike, reasons
       },
       primary_resistance: primaryCE, major_resistance: majorCE,
