@@ -172,6 +172,10 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         self.assertIn("actionability", report.to_dict())
         self.assertGreaterEqual(report.primary_resistance["distance_from_spot_pts"], 0)
         self.assertGreaterEqual(report.primary_support["distance_from_spot_pts"], 0)
+        self.assertGreaterEqual(report.primary_resistance["strike"], report.spot_close)
+        self.assertLessEqual(report.primary_support["strike"], report.spot_close)
+        self.assertGreaterEqual(report.strongest_resistance["strike"], report.spot_close)
+        self.assertLessEqual(report.strongest_support["strike"], report.spot_close)
         self.assertTrue(report.strongest_resistance)
         self.assertTrue(report.strongest_support)
         if not report.actionability["has_nearby_ce"] or not report.actionability["has_nearby_pe"]:
