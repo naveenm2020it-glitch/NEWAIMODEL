@@ -18,4 +18,17 @@ assert.equal(rows[0].expiry_date, "2026-11-26");
 assert.equal(rows[0].spot_close, 24950);
 assert.equal(rows[0].option_type, "CE");
 
+const participantCsv = [
+  "Client Type,Future Index Long,Future Index Short,Option Index Call Long,Option Index Call Short,Option Index Put Long,Option Index Put Short",
+  'FII,0,0,"1,200","500","300","700"',
+  "Pro,0,0,100,50,200,100"
+].join("\\n");
+const participant = context.NSEParser.parseParticipantCSV(
+  participantCsv,
+  "fao_participant_oi_13112026.csv"
+);
+assert.equal(participant.inst_net_call_contracts, 750);
+assert.equal(participant.inst_net_put_contracts, -300);
+assert.equal(participant.as_of, "2026-11-13");
+
 console.log("NSE parser regression tests passed.");
