@@ -119,9 +119,21 @@ function renderReport(report) {
 }
 
 function runAnalysis() {
-  let rows = loadStoredRows();
+  const rows = loadStoredRows();
   if (rows.length === 0) {
-    rows = saveStoredRows(NSEParser.generateDemo22Sessions());
+    document.getElementById("headerMeta").textContent = "Waiting for genuine NSE EOD data";
+    document.getElementById("kpiSpot").textContent = "—";
+    document.getElementById("kpiAtr").textContent = "—";
+    document.getElementById("kpiIv").textContent = "—";
+    document.getElementById("kpiCorridor").textContent = "—";
+    document.getElementById("regimeBanner").className = "card regime-card regime-warn";
+    document.getElementById("regimeVerdict").textContent = "WAIT — DATA REQUIRED";
+    document.getElementById("regimeSub").textContent = "No analysis is generated until genuine NSE EOD CSV data is downloaded or imported.";
+    document.getElementById("regimeReasons").innerHTML = "";
+    document.getElementById("wallsGrid").innerHTML = "";
+    document.getElementById("gapGrid").innerHTML = "";
+    document.getElementById("strikeTbody").innerHTML = "";
+    return;
   }
   const partRaw = localStorage.getItem(STORAGE_KEY_PART);
   const partSummary = partRaw ? JSON.parse(partRaw) : null;
@@ -214,18 +226,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     fileInput.value = "";
   });
 
-  document.getElementById("btnLoadDemo").addEventListener("click", () => {
-    const demo = NSEParser.generateDemo22Sessions();
-    saveStoredRows(demo);
-    localStorage.removeItem(STORAGE_KEY_PART);
-    statusEl.textContent = "Loaded 22-session sample NIFTY EOD dataset.";
-    runAnalysis();
-  });
 
   document.getElementById("btnClearDb").addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEY_ROWS);
     localStorage.removeItem(STORAGE_KEY_PART);
-    statusEl.textContent = "Cleared local EOD history. Showing sample baseline.";
+    statusEl.textContent = "Local EOD history cleared. Import or sync genuine NSE data to begin.";
     runAnalysis();
   });
 });
