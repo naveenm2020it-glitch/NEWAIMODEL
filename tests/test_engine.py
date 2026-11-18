@@ -85,6 +85,16 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No unexpired NIFTY option expiry"):
             OptionSellerIntelligenceEngine()._select_active_expiry(expired)
 
+    def test_expired_only_option_chain_is_rejected(self):
+        engine = OptionSellerIntelligenceEngine()
+        expired = pd.DataFrame({
+            "trade_date": ["2026-11-18"],
+            "expiry_date": ["2026-11-17"],
+            "oi": [1000],
+        })
+        with self.assertRaisesRegex(ValueError, "No unexpired NIFTY option expiry"):
+            engine._select_active_expiry(expired)
+
     def test_bsm_iv_and_danger_inversion_roundtrip(self):
         F, K, T, sig = 25040.0, 25100.0, 5.0 / 252.0, 0.14
         prem = bsm_price(F, K, T, sig, "CE")
