@@ -55,6 +55,7 @@ jobs:
           node tests/test_nse_parser.js
           node tests/test_bsm_js.js
           node tests/test_seller_engine.js
+          node tests/test_history_selector.js
 
       - name: Run Python engine tests
         run: python -m unittest discover -s tests -v
