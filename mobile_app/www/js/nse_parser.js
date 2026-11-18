@@ -134,15 +134,21 @@ const NSEParser = (() => {
     const callShortIdx = headers.findIndex(h => h.includes("Option Index Call Short"));
     const putLongIdx = headers.findIndex(h => h.includes("Option Index Put Long"));
     const putShortIdx = headers.findIndex(h => h.includes("Option Index Put Short"));
-    if (clientIdx < 0 || callLongIdx < 0) return null;
+    if (clientIdx < 0 || callLongIdx < 0 || callShortIdx < 0 || putLongIdx < 0 || putShortIdx < 0) return null;
+
+    const parseNumber = value => {
+      const normalized = String(value == null ? "" : value).replace(/,/g, "").trim();
+      const number = Number(normalized);
+      return Number.isFinite(number) ? number : 0;
+    };
 
     let instNetCall = 0, instNetPut = 0;
     for (let r = headerIdx + 1; r < lines.length; r++) {
       const cols = parseCSVLine(lines[r]);
       const cType = (cols[clientIdx] || "").trim();
       if (cType === "FII" || cType === "Pro") {
-        instNetCall += (parseFloat(cols[callLongIdx]) || 0) - (parseFloat(cols[callShortIdx]) || 0);
-        instNetPut += (parseFloat(cols[putLongIdx]) || 0) - (parseFloat(cols[putShortIdx]) || 0);
+        instNetCall += parseNumber(cols[callLongIdx]) - parseNumber(cols[callShortIdx]);
+        instNetPut += parseNumber(cols[putLongIdx]) - parseNumber(cols[putShortIdx]);
       }
     }
     const digits = fileName.replace(/\D/g, "");
