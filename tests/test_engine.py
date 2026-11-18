@@ -157,7 +157,7 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         engine = OptionSellerIntelligenceEngine()
         report = engine.analyze(bhav_df, part_df)
         self.assertEqual(report.primary_resistance["strike"], 25100.0)
-        self.assertEqual(report.primary_support["strike"], 24900.0)
+        self.assertEqual(report.primary_support["strike"], 25000.0)  # nearest qualified PE wall at spot
 
         # Reordering the same EOD records must never change the selected walls.
         reversed_report = engine.analyze(bhav_df.iloc[::-1].reset_index(drop=True), part_df)
