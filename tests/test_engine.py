@@ -158,6 +158,14 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         report = engine.analyze(bhav_df, part_df)
         self.assertEqual(report.primary_resistance["strike"], 25100.0)
         self.assertEqual(report.primary_support["strike"], 24900.0)
+
+        # Reordering the same EOD records must never change the selected walls.
+        reversed_report = engine.analyze(bhav_df.iloc[::-1].reset_index(drop=True), part_df)
+        self.assertEqual(reversed_report.primary_resistance["strike"], report.primary_resistance["strike"])
+        self.assertEqual(reversed_report.major_resistance["strike"], report.major_resistance["strike"])
+        self.assertEqual(reversed_report.primary_support["strike"], report.primary_support["strike"])
+        self.assertEqual(reversed_report.major_support["strike"], report.major_support["strike"])
+
         # Regime output must always agree with the engine's documented 3-of-5 rule.
         self.assertEqual(report.regime.triggered_rules_count, len(report.regime.reasons))
         self.assertEqual(report.regime.total_rules, 5)
