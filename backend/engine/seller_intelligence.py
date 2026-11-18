@@ -489,25 +489,89 @@ class OptionSellerIntelligenceEngine:
         if not pe_candidates:
             raise ValueError("No eligible PE support strikes found near/below NIFTY spot in the selected expiry.")
 
-        primary_ce = ce_candidates[0]
-        major_ce_list = [r for r in ce_candidates if r.strike > primary_ce.strike]
-        major_ce = major_ce_list[0] if major_ce_list else (ce_candidates[1] if len(ce_candidates) > 1 else primary_ce)
+        # Keep strongest seller walls separate from nearby next-session levels.
+        # "Nearby" is bounded by max(100 points, 0.75 x ATR14); a candidate
+        # must also show moderate/high concentration and fresh OI addition.
+        max_actionable_distance = max(100.0, 0.75 * atr_14)
 
-        primary_pe = pe_candidates[0]
-        major_pe_list = [r for r in pe_candidates if r.strike < primary_pe.strike]
-        major_pe = major_pe_list[0] if major_pe_list else (pe_candidates[1] if len(pe_candidates) > 1 else primary_pe)
+        def qualified_nearby(record, side):
+            distance = (record.strike - spot_close) if side == "CE" else (spot_close - record.strike)
+            return (
+                0 <= distance <= max_actionable_distance
+                and record.estimated.writing_concentration != "Low"
+                and record.observed.chg_in_oi > 0
+                and not record.estimated.eod_capitulation_flag
+            )
 
-        primary_ce.calculated.next_day_role = "Primary Resistance / CE Trap"
+        def distance_rank(record):
+            return (
+                abs(record.strike - spot_close),
+                -record.estimated.composite_sdi_zscore,
+                -record.observed.chg_in_oi,
+                -record.observed.oi,
+                record.strike,
+            )
+
+        nearby_ce = sorted([r for r in ce_candidates if qualified_nearby(r, "CE")], key=distance_rank)
+        nearby_pe = sorted([r for r in pe_candidates if qualified_nearby(r, "PE")], key=distance_rank)
+        strongest_ce = ce_candidates[0]
+        strongest_pe = pe_candidates[0]
+        primary_ce = nearby_ce[0] if nearby_ce else min(ce_candidates, key=distance_rank)
+        primary_pe = nearby_pe[0] if nearby_pe else min(pe_candidates, key=distance_rank)
+
+        major_ce = min(
+            [r for r in ce_candidates if r.strike > primary_ce.strike],
+            key=lambda r: (r.strike - primary_ce.strike, -r.estimated.composite_sdi_zscore),
+            default=primary_ce,
+        )
+        major_pe = min(
+            [r for r in pe_candidates if r.strike < primary_pe.strike],
+            key=lambda r: (primary_pe.strike - r.strike, -r.estimated.composite_sdi_zscore),
+            default=primary_pe,
+        )
+
+        primary_ce.calculated.next_day_role = "Nearest Resistance / CE Watch"
         if major_ce.strike != primary_ce.strike:
-            major_ce.calculated.next_day_role = "Major Structural Resistance"
-
-        primary_pe.calculated.next_day_role = "Primary Support / PE Trap"
+            major_ce.calculated.next_day_role = "Next Structural Resistance"
+        primary_pe.calculated.next_day_role = "Nearest Support / PE Watch"
         if major_pe.strike != primary_pe.strike:
-            major_pe.calculated.next_day_role = "Major Structural Support"
+            major_pe.calculated.next_day_role = "Next Structural Support"
+
+        def add_level_context(record, side, is_nearby):
+            flat = record.to_flat_dict()
+            distance = record.strike - spot_close if side == "CE" else spot_close - record.strike
+            flat["distance_from_spot_pts"] = round(distance, 1)
+            flat["within_actionable_range"] = bool(is_nearby)
+            flat["selection_basis"] = (
+                "NEAREST QUALIFIED SELLER WALL"
+                if is_nearby else "NO NEARBY CONFIRMED WALL — NEAREST CANDIDATE ONLY"
+            )
+            return flat
+
+        strongest_ce_flat = add_level_context(strongest_ce, "CE", False)
+        strongest_pe_flat = add_level_context(strongest_pe, "PE", False)
+        primary_ce_flat = add_level_context(primary_ce, "CE", bool(nearby_ce))
+        primary_pe_flat = add_level_context(primary_pe, "PE", bool(nearby_pe))
+        major_ce_flat = add_level_context(
+            major_ce, "CE", bool(nearby_ce and qualified_nearby(major_ce, "CE"))
+        )
+        major_pe_flat = add_level_context(
+            major_pe, "PE", bool(nearby_pe and qualified_nearby(major_pe, "PE"))
+        )
 
         corridor_pts = max(0.0, primary_ce.strike - primary_pe.strike)
         corridor_atr_ratio = corridor_pts / max(atr_14, 1.0)
         reasons = []
+
+        if not nearby_ce or not nearby_pe:
+            missing_side = (
+                "both CE and PE sides" if not nearby_ce and not nearby_pe
+                else ("CE resistance side" if not nearby_ce else "PE support side")
+            )
+            reasons.append(
+                f"NO TRADE GATE: No qualified nearby seller wall on {missing_side} "
+                f"within {max_actionable_distance:.0f} points of spot. Distant strongest walls are context only."
+            )
 
         if corridor_atr_ratio < 1.25:
             reasons.append(
@@ -535,7 +599,7 @@ class OptionSellerIntelligenceEngine:
                 f"just to reach seller danger levels inside a compressed range."
             )
 
-        is_no_trade = len(reasons) >= 3
+        is_no_trade = len(reasons) >= 3 or not nearby_ce or not nearby_pe
         verdict = (
             "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME"
             if is_no_trade
@@ -546,7 +610,7 @@ class OptionSellerIntelligenceEngine:
             is_no_trade=is_no_trade,
             verdict=verdict,
             triggered_rules_count=len(reasons),
-            total_rules=5,
+            total_rules=6,
             corridor_points=round(corridor_pts, 1),
             atr_14_points=round(atr_14, 1),
             corridor_to_atr_ratio=round(corridor_atr_ratio, 2),
@@ -615,10 +679,24 @@ class OptionSellerIntelligenceEngine:
             atm_iv_pct=round(atm_iv * 100.0, 2),
             participant_summary=part_summary,
             regime=regime,
-            primary_resistance=primary_ce.to_flat_dict(),
-            major_resistance=major_ce.to_flat_dict(),
-            primary_support=primary_pe.to_flat_dict(),
-            major_support=major_pe.to_flat_dict(),
+            primary_resistance=primary_ce_flat,
+            major_resistance=major_ce_flat,
+            primary_support=primary_pe_flat,
+            major_support=major_pe_flat,
+            strongest_resistance=strongest_ce_flat,
+            strongest_support=strongest_pe_flat,
+            actionability={
+                "max_distance_points": round(max_actionable_distance, 1),
+                "nearby_ce_count": len(nearby_ce),
+                "nearby_pe_count": len(nearby_pe),
+                "has_nearby_ce": bool(nearby_ce),
+                "has_nearby_pe": bool(nearby_pe),
+                "status": (
+                    "NEARBY WALLS FOUND — WAIT FOR INTRADAY CONFIRMATION"
+                    if nearby_ce and nearby_pe
+                    else "NO TRADE — NO QUALIFIED NEARBY WALL"
+                ),
+            },
             ce_danger_zones=ce_danger_list,
             pe_danger_zones=pe_danger_list,
             vacated_capitulation_strikes=vacated_list,
