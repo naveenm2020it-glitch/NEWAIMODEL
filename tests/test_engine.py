@@ -37,6 +37,54 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
         )
         self.assertEqual(probs["prob_pe_short_covering_pct"], 0.0)
 
+
+    def test_calibrator_clears_stale_model_when_new_window_is_not_trainable(self):
+        calibrator = OutcomeProbabilityCalibrator(min_train_samples=4)
+        rows = [{
+            "corridor_to_atr_ratio": 1.0 + i * 0.1,
+            "triggered_rules_count": float(i % 4),
+            "atm_iv_pct": 12.0 + i,
+            "ce_sdi_zscore": 0.2 * i,
+            "pe_sdi_zscore": 0.15 * i,
+            "ce_oi_chg_pct": float(i * 2),
+            "pe_oi_chg_pct": float(i),
+            "dist_to_ce_danger_atr": 0.5 + i * 0.1,
+            "dist_to_pe_danger_atr": 0.6 + i * 0.1,
+            "dte": float(2 + i),
+        } for i in range(8)]
+        calibrator.fit(pd.DataFrame(rows), __import__("numpy").array([0, 1] * 4))
+        self.assertTrue(calibrator.is_fitted)
+        calibrator.fit(pd.DataFrame(rows[:3]), __import__("numpy").array([0, 1, 0]))
+        self.assertFalse(calibrator.is_fitted)
+        self.assertIsNone(calibrator.model)
+
+    def test_calibrator_handles_missing_and_non_numeric_prediction_features(self):
+        calibrator = OutcomeProbabilityCalibrator(min_train_samples=4)
+        rows = [{
+            "corridor_to_atr_ratio": 1.0 + i * 0.1,
+            "triggered_rules_count": float(i % 4),
+            "atm_iv_pct": 12.0 + i,
+            "ce_sdi_zscore": 0.2 * i,
+            "pe_sdi_zscore": 0.15 * i,
+            "ce_oi_chg_pct": float(i * 2),
+            "pe_oi_chg_pct": float(i),
+            "dist_to_ce_danger_atr": 0.5 + i * 0.1,
+            "dist_to_pe_danger_atr": 0.6 + i * 0.1,
+            "dte": float(2 + i),
+        } for i in range(8)]
+        calibrator.fit(pd.DataFrame(rows), __import__("numpy").array([0, 1] * 4))
+        probs = calibrator.predict_probs({"corridor_to_atr_ratio": "invalid", "dte": float("inf")})
+        self.assertAlmostEqual(sum(probs.values()), 100.0, places=1)
+
+    def test_engine_rejects_dataset_without_future_expiry(self):
+        expired = pd.DataFrame({
+            "trade_date": ["2026-11-18"],
+            "expiry_date": ["2026-11-18"],
+            "oi": [1000],
+        })
+        with self.assertRaisesRegex(ValueError, "No unexpired NIFTY option expiry"):
+            OptionSellerIntelligenceEngine()._select_active_expiry(expired)
+
     def test_bsm_iv_and_danger_inversion_roundtrip(self):
         F, K, T, sig = 25040.0, 25100.0, 5.0 / 252.0, 0.14
         prem = bsm_price(F, K, T, sig, "CE")
