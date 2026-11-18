@@ -176,6 +176,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? `${res.statusMessage} (${added} NIFTY rows merged | ${datesCount} sessions stored)`
         : res.statusMessage;
       runAnalysis();
+    } catch (error) {
+      statusEl.textContent = "NSE EOD sync failed: " + (error && error.message ? error.message : "Unknown error") + ". You can retry or import the official CSV manually.";
     } finally {
       btnSyncNow.disabled = false;
       btnSyncNow.textContent = "Sync NSE EOD Now";
@@ -240,10 +242,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
 
-  document.getElementById("btnClearDb").addEventListener("click", () => {
+  document.getElementById("btnClearDb").addEventListener("click", async () => {
     localStorage.removeItem(STORAGE_KEY_ROWS);
     localStorage.removeItem(STORAGE_KEY_PART);
-    statusEl.textContent = "Local EOD history cleared. Import or sync genuine NSE data to begin.";
+    try {
+      await NSEAutoDownloader.clearSyncData();
+      statusEl.textContent = "Local EOD history and pending Android sync data cleared. Import or sync genuine NSE data to begin.";
+    } catch (error) {
+      statusEl.textContent = "Local history cleared, but pending Android sync data could not be cleared: " + (error && error.message ? error.message : "Unknown error");
+    }
     runAnalysis();
   });
 });
