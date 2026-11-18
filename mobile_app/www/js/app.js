@@ -258,6 +258,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 1. Ingest any EOD files already downloaded by the 6:15 PM IST background worker
   const pending = await NSEAutoDownloader.consumeBackgroundQueue();
   const bgAdded = ingestSyncPayload(pending);
+  refreshHistorySelectors();
   runAnalysis();
 
   // 2. Load schedule & auto-sync state
