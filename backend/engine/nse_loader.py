@@ -75,8 +75,33 @@ class NSEDataLoader:
         })
         df = df[df["instrument_type"].isin(["IDO", "IDF"])].copy()
 
-        df["trade_date_dt"] = pd.to_datetime(df["trade_date"], format="mixed", dayfirst=True)
-        df["expiry_date_dt"] = pd.to_datetime(df["expiry_date"], format="mixed", dayfirst=True)
+        # NSE UDiFF files commonly use ISO dates (YYYY-MM-DD). Do not pass
+        # those values through dayfirst=True: ambiguous values such as
+        # 2026-11-12 can otherwise be interpreted as 2026-12-11.
+        def parse_nse_date_column(values: pd.Series, column_name: str) -> pd.Series:
+            raw_dates = values.astype("string").str.strip()
+            parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
+            iso_mask = raw_dates.str.match(r"^\\d{4}-\\d{2}-\\d{2}$", na=False)
+
+            if iso_mask.any():
+                parsed.loc[iso_mask] = pd.to_datetime(
+                    raw_dates.loc[iso_mask], format="%Y-%m-%d", errors="coerce"
+                )
+            if (~iso_mask).any():
+                parsed.loc[~iso_mask] = pd.to_datetime(
+                    raw_dates.loc[~iso_mask], format="mixed", dayfirst=True, errors="coerce"
+                )
+
+            invalid = parsed.isna()
+            if invalid.any():
+                examples = raw_dates.loc[invalid].dropna().unique().tolist()[:5]
+                raise ValueError(
+                    f"Invalid {column_name} value(s) in NSE Bhavcopy: {examples}"
+                )
+            return parsed
+
+        df["trade_date_dt"] = parse_nse_date_column(df["trade_date"], "trade date")
+        df["expiry_date_dt"] = parse_nse_date_column(df["expiry_date"], "expiry date")
         df["trade_date"] = df["trade_date_dt"].dt.strftime("%Y-%m-%d")
         df["expiry_date"] = df["expiry_date_dt"].dt.strftime("%Y-%m-%d")
 
