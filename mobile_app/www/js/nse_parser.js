@@ -55,7 +55,13 @@ const NSEParser = (() => {
     const rawHeaders = parseCSVLine(lines[0].replace(/^\uFEFF/, ""));
     const idxMap = {};
     rawHeaders.forEach((h, i) => { if (COL_MAP[h]) idxMap[COL_MAP[h]] = i; });
-    if (idxMap.symbol === undefined || idxMap.strike === undefined) return [];
+    // Reject incomplete exports instead of silently converting absent
+    // market fields to zero and generating misleading analysis.
+    const requiredColumns = [
+      "trade_date", "instrument_type", "symbol", "expiry_date",
+      "strike", "option_type", "close_price"
+    ];
+    if (requiredColumns.some(name => idxMap[name] === undefined)) return [];
 
     const futRows = [], optRows = [];
     for (let r = 1; r < lines.length; r++) {
