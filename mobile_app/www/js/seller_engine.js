@@ -383,6 +383,14 @@ const SellerEngine = (() => {
       }
     ];
 
+    if (!nearbyCE.length || !nearbyPE.length) {
+      gapPlaybook.unshift({
+        title: "NO TRADE — Nearby seller evidence missing",
+        condition: "At least one side has no qualified seller wall within the configured spot-distance band.",
+        action: "Do not use distant strongest seller walls as intraday entry levels. Wait for fresh intraday structure and 5m/15m confirmation."
+      });
+    }
+
     records.sort((a, b) => a.strike - b.strike || a.option_type.localeCompare(b.option_type));
 
     return {
@@ -392,7 +400,9 @@ const SellerEngine = (() => {
       participant_summary: participantSummary,
       regime: {
         is_no_trade: isNoTrade,
-        verdict: isNoTrade ? "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME" : "ACTIONABLE — WATCH DUAL-PRICE TRIGGERS",
+        verdict: isNoTrade
+          ? ((!nearbyCE.length || !nearbyPE.length) ? "WAIT / NO TRADE — NO NEARBY CONFIRMED WALL" : "WAIT / NO TRADE — RANGE-BOUND PINNING REGIME")
+          : "ACTIONABLE — WATCH DUAL-PRICE TRIGGERS",
         triggered_count: reasons.length, corridor_pts: corridorPts, corridor_ratio: +corridorRatio.toFixed(2),
         box_low: primaryPE.strike, box_high: primaryCE.strike, reasons
       },
