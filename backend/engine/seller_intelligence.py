@@ -61,12 +61,14 @@ class OptionSellerIntelligenceEngine:
             dte = (pd.to_datetime(exp_str) - as_of_dt).days
             if dte >= 1:
                 valid_exps.append((exp_str, dte, total_oi))
-        if valid_exps:
-            max_oi = max(x[2] for x in valid_exps)
-            liquid = [x for x in valid_exps if x[2] >= 0.35 * max_oi]
-            liquid.sort(key=lambda x: x[1])
-            return liquid[0][0]
-        return str(exp_oi.idxmax())
+        if not valid_exps:
+            raise ValueError("No unexpired NIFTY option expiry was found in the latest EOD data.")
+        max_oi = max(x[2] for x in valid_exps)
+        liquid = [x for x in valid_exps if x[2] >= 0.35 * max_oi]
+        if not liquid:
+            raise ValueError("No sufficiently liquid future NIFTY expiry was found.")
+        liquid.sort(key=lambda x: x[1])
+        return liquid[0][0]
 
     def _summarize_participants(
         self, participant_df: Optional[pd.DataFrame], latest_date: str
