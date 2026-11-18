@@ -116,6 +116,10 @@ class TestSellerIntelligenceEngine(unittest.TestCase):
     def test_eod_pipeline_and_walk_forward_backtest(self):
         loader = NSEDataLoader(symbol="NIFTY")
         bhav_df = loader.load_bhavcopy_directory("sample_data", max_sessions=30)
+        # ISO UDiFF dates must remain month-first; dayfirst=True must not
+        # shift ambiguous dates such as 2026-11-12 into December.
+        self.assertIn("2026-11-12", set(bhav_df["trade_date"]))
+        self.assertEqual(max(bhav_df["trade_date"]), "2026-11-13")
         part_df = loader.load_participant_oi_directory("sample_data")
 
         engine = OptionSellerIntelligenceEngine()
