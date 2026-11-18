@@ -220,7 +220,12 @@ class NSEDataLoader:
                 date_col = [c for c in df.columns if "Date" in c][0]
                 ann_cols = [c for c in df.columns if "Annualised" in c or "Underlying" in c]
                 val_col = ann_cols[-1]
-                dt_str = pd.to_datetime(sub.iloc[0][date_col], format="mixed", dayfirst=True).strftime("%Y-%m-%d")
+                # FOVOLT exports can contain ISO dates as well as legacy
+                # DD-Mon-YYYY dates. Reuse the Bhavcopy parser to avoid
+                # interpreting YYYY-MM-DD with dayfirst=True.
+                dt_str = self._parse_nse_date_series(
+                    pd.Series([sub.iloc[0][date_col]])
+                ).iloc[0].strftime("%Y-%m-%d")
                 vol_val = float(sub.iloc[0][val_col])
                 vol_map[dt_str] = vol_val * 100.0 if vol_val < 1.5 else vol_val
             except Exception:
