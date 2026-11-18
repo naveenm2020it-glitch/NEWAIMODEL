@@ -71,6 +71,11 @@ const SellerEngine = (() => {
       Number.isFinite(Number(r.close_price)) && Number(r.close_price) >= 0 &&
       Number.isFinite(Number(r.oi)) && Number(r.oi) >= 0 &&
       (!requestedDate || r.trade_date <= requestedDate)
+    ).sort((a, b) =>
+      String(a.trade_date).localeCompare(String(b.trade_date)) ||
+      String(a.expiry_date).localeCompare(String(b.expiry_date)) ||
+      Number(a.strike) - Number(b.strike) ||
+      String(a.option_type).localeCompare(String(b.option_type))
     );
     if (validRows.length === 0) throw new Error("The imported data contains no usable NIFTY option records.");
     const allDates = [...new Set(validRows.map(r => r.trade_date))].sort();
@@ -189,7 +194,11 @@ const SellerEngine = (() => {
     const m22 = mean(i22Arr), s22 = std(i22Arr, m22);
 
     const sdiArr = prelim.map(x => 0.65 * ((x.i5 - m5) / s5) + 0.35 * ((x.i22 - m22) / s22));
-    const atmSorted = [...prelim].sort((a, b) => Math.abs(a.obs.strike - spotClose) - Math.abs(b.obs.strike - spotClose));
+    const atmSorted = [...prelim].sort((a, b) =>
+      Math.abs(a.obs.strike - spotClose) - Math.abs(b.obs.strike - spotClose) ||
+      a.obs.strike - b.obs.strike ||
+      a.obs.option_type.localeCompare(b.obs.option_type)
+    );
     const atmIv = atmSorted.length >= 2 ? (atmSorted[0].obs.iv + atmSorted[1].obs.iv) / 2.0 : 0.13;
 
     const dteFactor = Math.min(1.50, Math.max(1.26, 1.26 + 0.035 * Math.min(dte, 7)));
@@ -248,12 +257,22 @@ const SellerEngine = (() => {
       };
     });
 
+    // Use the full-precision SDI for ranking. Rounded display values must not
+    // create artificial ties whose winner depends on NSE CSV row order.
+    const selectionScores = new Map(records.map((record, index) => [record, sdiArr[index]]));
+    const candidateRank = (a, b) =>
+      (selectionScores.get(b) - selectionScores.get(a)) ||
+      (b.chg_in_oi - a.chg_in_oi) ||
+      (b.oi - a.oi) ||
+      (Math.abs(a.strike - spotClose) - Math.abs(b.strike - spotClose)) ||
+      (a.strike - b.strike);
+
     const ceCands = records
       .filter(r => r.option_type === "CE" && r.strike >= spotClose * 0.995 && !r.capitulation_flag)
-      .sort((a, b) => b.sdi_zscore - a.sdi_zscore);
+      .sort(candidateRank);
     const peCands = records
       .filter(r => r.option_type === "PE" && r.strike <= spotClose * 1.005 && !r.capitulation_flag)
-      .sort((a, b) => b.sdi_zscore - a.sdi_zscore);
+      .sort(candidateRank);
 
     if (ceCands.length === 0) {
       throw new Error("No eligible CE resistance candidates were found around NIFTY spot for the selected expiry.");
