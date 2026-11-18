@@ -18,7 +18,7 @@ const SellerEngine = (() => {
     return Math.min(lastSpot * 0.025, Math.max(lastSpot * 0.0045, rawAtr));
   }
 
-  function selectActiveExpiry(latestRows) {
+  function selectActiveExpiry(latestRows, preferredExpiry = null) {
     if (!Array.isArray(latestRows) || latestRows.length === 0) {
       throw new Error("No latest-session NIFTY records are available.");
     }
@@ -31,6 +31,11 @@ const SellerEngine = (() => {
     if (valid.length === 0) {
       throw new Error("No unexpired NIFTY option expiry was found in the latest EOD data.");
     }
+    if (preferredExpiry) {
+      const selected = valid.find(x => x.exp === preferredExpiry);
+      if (!selected) throw new Error("The selected expiry is not a valid future expiry for this trading date.");
+      return selected.exp;
+    }
     const maxOi = Math.max(...valid.map(x => x.totalOi));
     const liquid = valid.filter(x => x.totalOi >= 0.35 * maxOi).sort((a, b) => a.dte - b.dte);
     if (liquid.length === 0) {
@@ -39,8 +44,25 @@ const SellerEngine = (() => {
     return liquid[0].exp;
   }
 
-  function analyze(allRows, participantSummary = null) {
+  function getAvailableExpiries(allRows, date) {
+    if (!Array.isArray(allRows) || !date) return [];
+    const rows = allRows.filter(r => r && r.trade_date === date && r.expiry_date && Number.isFinite(Number(r.oi)));
+    const oiByExp = {};
+    rows.forEach(r => { oiByExp[r.expiry_date] = (oiByExp[r.expiry_date] || 0) + Number(r.oi || 0); });
+    const asOfMs = new Date(date + "T00:00:00").getTime();
+    return Object.keys(oiByExp).filter(exp => /^\\d{4}-\\d{2}-\\d{2}$/.test(exp) &&
+      Math.round((new Date(exp + "T00:00:00").getTime() - asOfMs) / 86400000) >= 1).sort();
+  }
+
+  function getDefaultExpiry(allRows, date) {
+    const rows = (allRows || []).filter(r => r && r.trade_date === date);
+    return selectActiveExpiry(rows);
+  }
+
+  function analyze(allRows, participantSummary = null, options = {}) {
     if (!Array.isArray(allRows) || allRows.length === 0) throw new Error("No valid EOD records available.");
+    const requestedDate = options && options.date ? String(options.date) : null;
+    const requestedExpiry = options && options.expiry ? String(options.expiry) : null;
     const validRows = allRows.filter(r =>
       r && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(r.trade_date || "")) &&
       /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(r.expiry_date || "")) &&
@@ -53,14 +75,15 @@ const SellerEngine = (() => {
     const allDates = [...new Set(validRows.map(r => r.trade_date))].sort();
     if (allDates.length === 0) throw new Error("No valid EOD dates available.");
 
-    const latestDate = allDates[allDates.length - 1];
+    const latestDate = requestedDate || allDates[allDates.length - 1];
+    if (!allDates.includes(latestDate)) throw new Error("No NSE option records are stored for the selected trading date.");
     const win22 = allDates.slice(-22);
     const lagMap = {};
     [...win22].reverse().forEach((d, idx) => { lagMap[d] = idx; });
 
     const latestAll = validRows.filter(r => r.trade_date === latestDate);
     if (latestAll.length === 0) throw new Error("No option records exist for the latest EOD date.");
-    const targetExpiry = selectActiveExpiry(latestAll);
+    const targetExpiry = selectActiveExpiry(latestAll, requestedExpiry);
 
     const calDays = Math.max(1, Math.round((new Date(targetExpiry) - new Date(latestDate)) / 86400000));
     const dte = Math.max(1, Math.round(calDays * 5.0 / 7.0));
@@ -314,5 +337,5 @@ const SellerEngine = (() => {
     };
   }
 
-  return { analyze };
+  return { analyze, getAvailableExpiries, getDefaultExpiry };
 })();
