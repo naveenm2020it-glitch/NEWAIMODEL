@@ -157,6 +157,17 @@ public class NseSessionFetcher {
         }
     }
 
+    public static void clearLocalSyncData(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+            .remove("pending_bhav_json")
+            .remove("pending_part_csv")
+            .remove("pending_part_name")
+            .remove("synced_dates_set")
+            .putString("last_sync_status", "Local sync history reset")
+            .apply();
+    }
+
     public static JSONObject consumePendingSync(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         JSONObject out = new JSONObject();
