@@ -61,7 +61,14 @@ public class NseAutoSyncPlugin extends Plugin {
 
     @PluginMethod
     public void clearSyncData(PluginCall call) {
-        NseSessionFetcher.clearLocalSyncData(getContext());
+        Context context = getContext();
+        SharedPreferences prefs = context.getSharedPreferences(NseSessionFetcher.PREFS_NAME, Context.MODE_PRIVATE);
+        boolean autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true);
+        androidx.work.WorkManager.getInstance(context).cancelUniqueWork(NseSyncWorker.UNIQUE_WORK_NAME);
+        NseSessionFetcher.clearLocalSyncData(context);
+        if (autoSyncEnabled) {
+            NseSyncWorker.scheduleDaily615PmIst(context, true);
+        }
         call.resolve();
     }
 
