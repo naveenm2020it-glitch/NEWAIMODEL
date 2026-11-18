@@ -3,72 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>NIFTY Option Seller Intelligence</title>
+  <meta name="theme-color" content="#f5f7fb" />
+  <title>NIFTY Seller Intelligence</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
-    <div>
-      <h1>NIFTY Seller Intelligence</h1>
-      <p id="headerMeta">Initializing EOD engine...</p>
+    <div class="header-inner">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">N</div>
+        <div class="brand-copy">
+          <span class="brand-kicker">MARKET INTELLIGENCE</span>
+          <h1>NIFTY Seller Intelligence</h1>
+          <p id="headerMeta">Initializing EOD engine...</p>
+        </div>
+      </div>
+      <div class="header-context"><span class="live-dot"></span><span>EOD analysis workspace</span></div>
     </div>
   </header>
 
   <main class="container">
+    <section class="page-intro">
+      <div>
+        <span class="eyebrow">NEXT-SESSION RESEARCH</span>
+        <h2>Seller positioning, made actionable.</h2>
+        <p>Understand defended levels, premium risk and opening-gap scenarios from verified NSE EOD data.</p>
+      </div>
+      <div class="intro-note"><span class="note-icon">✓</span><span>Observed data kept separate from estimates and calculated risk levels</span></div>
+    </section>
+
     <section class="card import-card">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">DATA CONTROL</span>
+          <h2>NSE EOD data</h2>
+          <p class="section-description">Keep your rolling session history current or import exchange CSV files.</p>
+        </div>
+        <span class="section-icon" aria-hidden="true">⇅</span>
+      </div>
       <div class="sync-header-row">
         <label class="toggle-wrap">
           <input id="chkAutoSync" type="checkbox" checked />
-          <span>Auto-Sync NSE EOD (Daily 6:15 PM IST + On Open)</span>
+          <span>Automatic daily sync <small>6:15 PM IST + on app open</small></span>
         </label>
         <span id="nextScheduleBadge" class="schedule-pill">Next: 6:15 PM IST</span>
       </div>
-
       <div class="btn-row">
-        <button id="btnSyncNow" class="btn btn-primary">Sync NSE EOD Now</button>
-        <label for="csvFileInput" class="btn btn-secondary">Import CSVs</label>
+        <button id="btnSyncNow" class="btn btn-primary"><span aria-hidden="true">↻</span> Sync NSE EOD Now</button>
+        <label for="csvFileInput" class="btn btn-secondary"><span aria-hidden="true">↑</span> Import CSVs</label>
         <input id="csvFileInput" type="file" accept=".csv,text/csv" multiple hidden />
-        <button id="btnClearDb" class="btn btn-danger">Reset</button>
+        <button id="btnClearDb" class="btn btn-danger">Reset history</button>
       </div>
       <div id="importStatus" class="status-text">Checking NSE EOD sync status...</div>
       <div id="participantBar" class="part-bar" style="display:none;"></div>
     </section>
 
-    <section class="kpi-grid">
-      <div class="kpi-box"><span>NIFTY Spot (Obs)</span><strong id="kpiSpot">—</strong></div>
-      <div class="kpi-box"><span>14D Spot ATR</span><strong id="kpiAtr">—</strong></div>
-      <div class="kpi-box"><span>ATM IV (Calc)</span><strong id="kpiIv">—</strong></div>
-      <div class="kpi-box"><span>Seller Box</span><strong id="kpiCorridor">—</strong></div>
+    <section class="kpi-grid" aria-label="Market snapshot">
+      <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">◎</span><span>NIFTY Spot <em>OBSERVED</em></span></div><strong id="kpiSpot">—</strong><small>Latest available close</small></div>
+      <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">⌁</span><span>14D Spot ATR</span></div><strong id="kpiAtr">—</strong><small>Points · calculated</small></div>
+      <div class="kpi-box"><div class="kpi-label"><span class="kpi-icon">◌</span><span>ATM Implied Volatility</span></div><strong id="kpiIv">—</strong><small>BSM calculated</small></div>
+      <div class="kpi-box kpi-accent"><div class="kpi-label"><span class="kpi-icon">↔</span><span>Seller Box</span></div><strong id="kpiCorridor">—</strong><small>Estimated regime corridor</small></div>
     </section>
 
     <section id="regimeBanner" class="card regime-card">
-      <div id="regimeVerdict" class="regime-title">—</div>
-      <div id="regimeSub" class="regime-sub">—</div>
+      <div class="regime-main">
+        <div class="regime-symbol" aria-hidden="true">!</div>
+        <div class="regime-copy">
+          <span class="eyebrow">MARKET REGIME CHECK</span>
+          <div id="regimeVerdict" class="regime-title">—</div>
+          <div id="regimeSub" class="regime-sub">—</div>
+        </div>
+      </div>
       <ul id="regimeReasons" class="reasons-list"></ul>
     </section>
 
-    <section class="card">
-      <h2>Next-Day Seller Defended Walls &amp; Danger Triggers</h2>
+    <section class="card data-card">
+      <div class="section-heading">
+        <div><span class="eyebrow">LEVEL MAP</span><h2>Seller-defended walls &amp; danger triggers</h2><p class="section-description">Key resistance and support strikes, estimated seller entries and calculated danger levels.</p></div>
+      </div>
       <div id="wallsGrid" class="walls-grid"></div>
     </section>
 
-    <section class="card">
-      <h2>9:15 AM Opening Gap Contingency Matrix (No Pre-Market Feed)</h2>
+    <section class="card data-card">
+      <div class="section-heading">
+        <div><span class="eyebrow">OPENING PLAN</span><h2>9:15 AM gap contingency matrix</h2><p class="section-description">Pre-computed flat, gap-up and gap-down scenarios. No pre-market feed assumed.</p></div>
+      </div>
       <div id="gapGrid" class="gap-grid"></div>
     </section>
 
-    <section class="card">
-      <h2>Strike Intelligence (Observed vs. Estimated vs. Calculated)</h2>
+    <section class="card data-card">
+      <div class="section-heading">
+        <div><span class="eyebrow">STRIKE-LEVEL DETAIL</span><h2>Strike intelligence</h2><p class="section-description">Observed EOD values, estimated seller positioning and calculated risk triggers.</p></div>
+        <span class="data-legend"><i class="legend-observed"></i> Observed <i class="legend-estimated"></i> Estimated <i class="legend-calculated"></i> Calculated</span>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Strike / Role</th>
-              <th>EOD (Obs)</th>
-              <th>Entry (Est)</th>
-              <th>Conc.</th>
-              <th>Danger (Calc)</th>
+              <th>EOD <small>OBS</small></th>
+              <th>Entry <small>EST</small></th>
+              <th>Concentration</th>
+              <th>Danger <small>CALC</small></th>
               <th>Status / ΔOI</th>
             </tr>
           </thead>
@@ -76,6 +113,7 @@
         </table>
       </div>
     </section>
+    <footer class="app-footer"><span>NIFTY SELLER INTELLIGENCE</span><span>Research from NSE EOD records · Not a live market feed</span></footer>
   </main>
 
   <script src="js/bsm_engine.js"></script>
