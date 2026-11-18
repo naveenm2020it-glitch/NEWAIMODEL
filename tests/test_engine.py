@@ -1,4 +1,6 @@
 import unittest
+import pandas as pd
+from backend.engine.ml_calibrator import OutcomeProbabilityCalibrator
 from backend.engine import (
     NSEDataLoader,
     OptionSellerIntelligenceEngine,
@@ -10,6 +12,31 @@ from backend.engine import (
 
 
 class TestSellerIntelligenceEngine(unittest.TestCase):
+    def test_ml_probabilities_sum_to_100_when_a_class_is_missing(self):
+        calibrator = OutcomeProbabilityCalibrator(min_train_samples=4)
+        rows = []
+        for i in range(8):
+            rows.append({
+                "corridor_to_atr_ratio": 1.0 + i * 0.1,
+                "triggered_rules_count": float(i % 4),
+                "atm_iv_pct": 12.0 + i,
+                "ce_sdi_zscore": 0.2 * i,
+                "pe_sdi_zscore": 0.15 * i,
+                "ce_oi_chg_pct": float(i * 2),
+                "pe_oi_chg_pct": float(i),
+                "dist_to_ce_danger_atr": 0.5 + i * 0.1,
+                "dist_to_pe_danger_atr": 0.6 + i * 0.1,
+                "dte": float(2 + i),
+            })
+        calibrator.fit(pd.DataFrame(rows), __import__("numpy").array([0, 1, 0, 1, 0, 1, 0, 1]))
+        probs = calibrator.predict_probs(rows[-1])
+        self.assertAlmostEqual(
+            probs["prob_range_hold_pct"] + probs["prob_ce_short_covering_pct"] + probs["prob_pe_short_covering_pct"],
+            100.0,
+            places=1,
+        )
+        self.assertEqual(probs["prob_pe_short_covering_pct"], 0.0)
+
     def test_bsm_iv_and_danger_inversion_roundtrip(self):
         F, K, T, sig = 25040.0, 25100.0, 5.0 / 252.0, 0.14
         prem = bsm_price(F, K, T, sig, "CE")
