@@ -60,6 +60,12 @@ public class NseAutoSyncPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void clearSyncData(PluginCall call) {
+        NseSessionFetcher.clearLocalSyncData(getContext());
+        call.resolve();
+    }
+
+    @PluginMethod
     public void configureSchedule(PluginCall call) {
         boolean enabled = call.getBoolean("enabled", true);
         String nextStr = NseSyncWorker.scheduleDaily615PmIst(getContext(), enabled);
