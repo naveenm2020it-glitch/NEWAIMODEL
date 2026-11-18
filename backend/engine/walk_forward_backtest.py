@@ -173,12 +173,14 @@ class WalkForwardBacktester:
         return {
             "total_out_of_sample_sessions": int(n_days),
             "resistance_hold_rate_pct": round(float(log_df["res_held"].mean() * 100.0), 1),
-            "tested_resistance_hold_rate_pct": round(
-                float(res_tested_df["res_held"].mean() * 100.0) if not res_tested_df.empty else None, 1
+            "tested_resistance_hold_rate_pct": (
+                round(float(res_tested_df["res_held"].mean() * 100.0), 1)
+                if not res_tested_df.empty else None
             ),
             "support_hold_rate_pct": round(float(log_df["sup_held"].mean() * 100.0), 1),
-            "tested_support_hold_rate_pct": round(
-                float(sup_tested_df["sup_held"].mean() * 100.0) if not sup_tested_df.empty else None, 1
+            "tested_support_hold_rate_pct": (
+                round(float(sup_tested_df["sup_held"].mean() * 100.0), 1)
+                if not sup_tested_df.empty else None
             ),
             "danger_zone_triggered_sessions": int(len(dual_trig_df)),
             "confirmed_short_covering_accuracy_pct": (
