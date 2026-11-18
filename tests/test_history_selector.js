@@ -43,7 +43,7 @@ assert.throws(
 );
 assert.throws(
   () => engine.analyze(rows, null, { date: "2026-11-15" }),
-  /No NSE option records/i
+  /no usable NIFTY option records/i
 );
 
 console.log("Historical date and expiry selector regression tests passed.");
