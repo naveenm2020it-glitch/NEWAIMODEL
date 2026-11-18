@@ -39,6 +39,13 @@ const NSEAutoDownloader = (() => {
     return await plugin.consumePendingSync();
   }
 
+  async function clearSyncData() {
+    const plugin = getNativePlugin();
+    if (!plugin || !plugin.clearSyncData) return false;
+    await plugin.clearSyncData();
+    return true;
+  }
+
   async function syncNow({ lookbackDays = 5, force = false, onProgress = null } = {}) {
     const plugin = getNativePlugin();
     let listenerHandle = null;
@@ -70,6 +77,7 @@ const NSEAutoDownloader = (() => {
     setAutoSyncEnabled,
     getStatus,
     consumeBackgroundQueue,
+    clearSyncData,
     syncNow
   };
 })();
