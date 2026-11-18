@@ -4,7 +4,8 @@ const STORAGE_KEY_PART = "nifty_eod_participant_v1";
 function loadStoredRows() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ROWS);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     return [];
   }
@@ -135,13 +136,17 @@ function runAnalysis() {
     document.getElementById("strikeTbody").innerHTML = "";
     return;
   }
-  const partRaw = localStorage.getItem(STORAGE_KEY_PART);
-  const partSummary = partRaw ? JSON.parse(partRaw) : null;
   try {
+    const partRaw = localStorage.getItem(STORAGE_KEY_PART);
+    const partSummary = partRaw ? JSON.parse(partRaw) : null;
     const report = SellerEngine.analyze(rows, partSummary);
     renderReport(report);
   } catch (error) {
     document.getElementById("headerMeta").textContent = "Analysis unavailable — check imported NSE data";
+    document.getElementById("kpiSpot").textContent = "—";
+    document.getElementById("kpiAtr").textContent = "—";
+    document.getElementById("kpiIv").textContent = "—";
+    document.getElementById("kpiCorridor").textContent = "—";
     document.getElementById("regimeBanner").className = "card regime-card regime-warn";
     document.getElementById("regimeVerdict").textContent = "ANALYSIS UNAVAILABLE";
     document.getElementById("regimeSub").textContent = error && error.message
