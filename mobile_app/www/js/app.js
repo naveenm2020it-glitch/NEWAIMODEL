@@ -246,8 +246,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.removeItem(STORAGE_KEY_ROWS);
     localStorage.removeItem(STORAGE_KEY_PART);
     try {
-      await NSEAutoDownloader.clearSyncData();
-      statusEl.textContent = "Local EOD history and pending Android sync data cleared. Import or sync genuine NSE data to begin.";
+      const nativeQueueCleared = await NSEAutoDownloader.clearSyncData();
+      statusEl.textContent = nativeQueueCleared
+        ? "Local EOD history and pending Android sync data cleared. Import or sync genuine NSE data to begin."
+        : "Local EOD history cleared. Import or sync genuine NSE data to begin.";
     } catch (error) {
       statusEl.textContent = "Local history cleared, but pending Android sync data could not be cleared: " + (error && error.message ? error.message : "Unknown error");
     }
