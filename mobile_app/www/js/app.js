@@ -182,7 +182,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function exportCsv(rows, filename) {
     if (!rows.length) { statusEl.textContent = "No records available for this selection."; return; }
-    const columns = ["trade_date","expiry_date","strike","option_type","open_price","high_price","low_price","close_price","settle_price","prev_close_price","spot_close","futures_close","oi","chg_in_oi","volume","turnover","vwap","lot_size"];
+    const preferredColumns = ["trade_date","expiry_date","strike","option_type","open_price","high_price","low_price","close_price","settle_price","prev_close_price","spot_close","futures_close","oi","chg_in_oi","volume","turnover","vwap","lot_size"];
+    const allKeys = [...new Set(rows.flatMap(row => Object.keys(row)))];
+    const columns = [...preferredColumns.filter(key => allKeys.includes(key)), ...allKeys.filter(key => !preferredColumns.includes(key)).sort()];
     const csv = [columns.join(","), ...rows.map(row => columns.map(key => csvCell(row[key])).join(","))].join("\r\n");
     const csvText = "\uFEFF" + csv;
     const nativePlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NseAutoSync;
