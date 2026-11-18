@@ -57,6 +57,25 @@
       </div>
       <div id="importStatus" class="status-text">Checking NSE EOD sync status...</div>
       <div id="participantBar" class="part-bar" style="display:none;"></div>
+      <div class="history-export-panel">
+        <div class="section-heading">
+          <div><span class="eyebrow">HISTORICAL DATA</span><h3>Date &amp; expiry selector</h3><p class="section-description">Choose a stored NSE trading session. Expiries are loaded from that date's actual records.</p></div>
+        </div>
+        <div class="history-filter-grid">
+          <label class="history-field">Trading date
+            <select id="historyDateSelect" aria-label="Select historical trading date" disabled><option value="">No dates available</option></select>
+          </label>
+          <label class="history-field">Expiry
+            <select id="historyExpirySelect" aria-label="Select option expiry" disabled><option value="">Select a date first</option></select>
+          </label>
+        </div>
+        <div id="historyDataMeta" class="history-data-meta">Import or sync NSE data to choose a historical date.</div>
+        <div class="btn-row history-download-row">
+          <button id="btnDownloadDateCsv" class="btn btn-secondary" disabled>Download date data CSV</button>
+          <button id="btnDownloadExpiryCsv" class="btn btn-primary" disabled>Download selected expiry CSV</button>
+        </div>
+        <p class="history-export-note">Exports contain genuine NIFTY option rows stored in this app. The original NSE ZIP and historical participant reports are not archived by this feature.</p>
+      </div>
     </section>
 
     <section id="snapshot" class="kpi-grid" aria-label="Market snapshot">
