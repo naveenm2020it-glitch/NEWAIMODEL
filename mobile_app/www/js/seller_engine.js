@@ -257,8 +257,9 @@ const SellerEngine = (() => {
       };
     });
 
-    // Use the full-precision SDI for ranking. Rounded display values must not
-    // create artificial ties whose winner depends on NSE CSV row order.
+    // Use the full-precision SDI for ranking, then fresh OI, total OI,
+    // proximity to spot, and strike as deterministic tie-breaks. Rounded
+    // display values must never make identical EOD snapshots order-sensitive.
     const selectionScores = new Map(records.map((record, index) => [record, sdiArr[index]]));
     const candidateRank = (a, b) =>
       (selectionScores.get(b) - selectionScores.get(a)) ||
