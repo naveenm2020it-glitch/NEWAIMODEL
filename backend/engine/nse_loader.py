@@ -81,7 +81,7 @@ class NSEDataLoader:
         def parse_nse_date_column(values: pd.Series, column_name: str) -> pd.Series:
             raw_dates = values.astype("string").str.strip()
             parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
-            iso_mask = raw_dates.str.match(r"^\\d{4}-\\d{2}-\\d{2}$", na=False)
+            iso_mask = raw_dates.str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)
 
             if iso_mask.any():
                 parsed.loc[iso_mask] = pd.to_datetime(
