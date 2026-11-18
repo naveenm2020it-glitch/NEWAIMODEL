@@ -181,11 +181,11 @@ class WalkForwardBacktester:
                 float(sup_tested_df["sup_held"].mean() * 100.0) if not sup_tested_df.empty else 100.0, 1
             ),
             "danger_zone_triggered_sessions": int(len(dual_trig_df)),
-            "confirmed_short_covering_accuracy_pct": round(
-                float((dual_trig_df["ce_actual_covering"] | dual_trig_df["pe_actual_covering"]).mean() * 100.0)
-                if not dual_trig_df.empty else 100.0,
-                1,
+            "confirmed_short_covering_accuracy_pct": (
+                round(float((dual_trig_df["ce_actual_covering"] | dual_trig_df["pe_actual_covering"]).mean() * 100.0), 1)
+                if not dual_trig_df.empty else None
             ),
+            "confirmed_short_covering_accuracy_sample_count": int(len(dual_trig_df)),
             "false_breakouts_filtered_count": int(log_df["false_breakout_filtered"].sum()),
             "sideways_no_trade_flagged_sessions": int(len(no_trade_df)),
             "sideways_no_trade_precision_pct": round(
