@@ -137,8 +137,21 @@ function runAnalysis() {
   }
   const partRaw = localStorage.getItem(STORAGE_KEY_PART);
   const partSummary = partRaw ? JSON.parse(partRaw) : null;
-  const report = SellerEngine.analyze(rows, partSummary);
-  renderReport(report);
+  try {
+    const report = SellerEngine.analyze(rows, partSummary);
+    renderReport(report);
+  } catch (error) {
+    document.getElementById("headerMeta").textContent = "Analysis unavailable — check imported NSE data";
+    document.getElementById("regimeBanner").className = "card regime-card regime-warn";
+    document.getElementById("regimeVerdict").textContent = "ANALYSIS UNAVAILABLE";
+    document.getElementById("regimeSub").textContent = error && error.message
+      ? error.message
+      : "The imported records could not be analyzed. Please verify the NSE CSV and try again.";
+    document.getElementById("regimeReasons").innerHTML = "";
+    document.getElementById("wallsGrid").innerHTML = "";
+    document.getElementById("gapGrid").innerHTML = "";
+    document.getElementById("strikeTbody").innerHTML = "";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
