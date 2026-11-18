@@ -69,7 +69,8 @@ const SellerEngine = (() => {
       Number.isFinite(Number(r.strike)) && Number(r.strike) > 0 &&
       (r.option_type === "CE" || r.option_type === "PE") &&
       Number.isFinite(Number(r.close_price)) && Number(r.close_price) >= 0 &&
-      Number.isFinite(Number(r.oi)) && Number(r.oi) >= 0
+      Number.isFinite(Number(r.oi)) && Number(r.oi) >= 0 &&
+      (!requestedDate || r.trade_date <= requestedDate)
     );
     if (validRows.length === 0) throw new Error("The imported data contains no usable NIFTY option records.");
     const allDates = [...new Set(validRows.map(r => r.trade_date))].sort();
